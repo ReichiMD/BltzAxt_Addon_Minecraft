@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator via Direct API
+      - name: Run Generator via Direct API (Auto-Detect)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -33,10 +33,34 @@ jobs:
           import os
           import json
           import requests
+          import sys
 
           API_KEY = os.environ['GEMINI_API_KEY']
-          # Wir nutzen die direkte Web-Adresse (REST API) für das Flash-Modell
-          URL = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}'
+          BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
+
+          def get_available_model():
+              print('Suche verfügbare Modelle...')
+              try:
+                  response = requests.get(f'{BASE_URL}/models?key={API_KEY}')
+                  response.raise_for_status()
+                  models = response.json().get('models', [])
+                  
+                  # Wir suchen ein Modell, das 'generateContent' unterstützt
+                  for m in models:
+                      name = m['name']
+                      if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini' in name:
+                          print(f'Gefundenes Modell: {name}')
+                          return name
+                  
+                  # Fallback, falls die Suche nichts Eindeutiges liefert
+                  return 'models/gemini-pro'
+              except Exception as e:
+                  print(f'Modell-Suche fehlgeschlagen: {e}')
+                  return 'models/gemini-pro'
+
+          # 1. Modell automatisch finden
+          model_name = get_available_model()
+          URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
           prompt_text = '''
           You are a Minecraft Bedrock Addon Expert.
@@ -51,31 +75,33 @@ jobs:
           
           user_request = os.environ['ISSUE_BODY']
           
-          # Das Datenpaket für die Direktverbindung
           payload = {
               'contents': [{
                   'parts': [{'text': prompt_text + '\nREQUEST: ' + user_request}]
               }]
           }
 
-          print('Sending request directly to API...')
+          print(f'Sende Anfrage an {model_name}...')
           
           try:
               response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
-              response.raise_for_status() # Check for HTTP errors
+              
+              if response.status_code != 200:
+                  print('API FEHLER:', response.text)
+                  exit(1)
               
               # Antwort auspacken
               result = response.json()
               try:
                   text_response = result['candidates'][0]['content']['parts'][0]['text']
               except KeyError:
-                  print('API Error Format:', result)
+                  print('Unerwartetes Antwort-Format:', result)
                   exit(1)
 
-              # Bereinigung (Markdown entfernen)
+              # Bereinigung
               text = text_response.strip()
+              # Entferne Markdown Formatierung
               if text.startswith('\`\`\`json'): text = text[7:]
-              if text.startswith('\`\`\ையான'): text = text[3:] # Falls Übersetzung an war
               if text.startswith('\`\`\`'): text = text[3:]
               if text.endswith('\`\`\ையான'): text = text[:-3]
               text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
@@ -87,12 +113,10 @@ jobs:
                   os.makedirs(os.path.dirname(path), exist_ok=True)
                   with open(path, 'w', encoding='utf-8') as f:
                       f.write(content)
-                  print(f'Created: {path}')
+                  print(f'Datei erstellt: {path}')
 
           except Exception as e:
-              print(f'CRITICAL ERROR: {e}')
-              if 'response' in locals():
-                  print('Response text:', response.text)
+              print(f'KRITISCHER FEHLER: {e}')
               exit(1)
           "
 
@@ -101,6 +125,6 @@ jobs:
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
-          git commit -m "Gemini generated addon files (Direct API)" || echo "No changes"
+          git commit -m "Gemini generated addon files" || echo "No changes"
           git push
           
