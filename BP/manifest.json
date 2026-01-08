@@ -1,0 +1,1 @@
+{"format_version": 2,"header": {"name": "AI Test Addon","description": "Ein von KI generiertes Test-Add-on.","uuid": "1b9c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e","version": [1, 0, 0],"min_engine_version": [1, 16, 0]},"modules": [{"type": "data","uuid": "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c","version": [1, 0, 0]}],"dependencies": []}
