@@ -24,17 +24,18 @@ jobs:
       - name: Install Library
         run: pip install -U google-generativeai
 
-      - name: Create Script
+      - name: Run Generator
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
-          cat <<EOF > generator.py
+          python -c "
           import os
           import json
           import google.generativeai as genai
 
           try:
+              # Setup
               genai.configure(api_key=os.environ['GEMINI_API_KEY'])
               model = genai.GenerativeModel('gemini-1.5-flash')
               
@@ -42,46 +43,47 @@ jobs:
               You are a Minecraft Bedrock Addon Expert.
               Create valid JSON files for the requested addon.
               RULES:
-              1. Output ONLY valid JSON. format: {"path/file.json": "content"}
+              1. Output ONLY valid JSON. format: {\"path/file.json\": \"content\"}
               2. NO markdown blocks. NO text before/after.
               3. NO umlauts in filenames.
               4. UUIDs must be random.
+              5. Ensure manifest.json is included.
               '''
               
               request = os.environ['ISSUE_BODY']
-              response = model.generate_content(prompt + "\nREQUEST: " + request)
+              print('Sending request to Gemini...')
+              response = model.generate_content(prompt + '\nREQUEST: ' + request)
               
+              # Cleanup response
               text = response.text.strip()
-              # Clean markdown if present
-              if text.startswith('```json'):
+              if text.startswith('\`\`\`json'):
                   text = text[7:]
-              if text.endswith('```'):
+              if text.startswith('\`\`\ையான'):
+                  text = text[3:]
+              if text.endswith('\`\`\ையான'):
                   text = text[:-3]
-              
+              # Remove Markdown markers safely
+              text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
+
               data = json.loads(text)
               
+              # Write files
               for path, content in data.items():
                   os.makedirs(os.path.dirname(path), exist_ok=True)
                   with open(path, 'w', encoding='utf-8') as f:
                       f.write(content)
-                  print(f"Created: {path}")
+                  print(f'Created: {path}')
                   
           except Exception as e:
-              print(f"Error: {e}")
+              print(f'ERROR: {e}')
               exit(1)
-          EOF
-
-      - name: Run Generator
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-        run: python generator.py
+          "
 
       - name: Commit changes
         run: |
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
-          git commit -m "Gemini created addon files" || echo "No changes"
+          git commit -m "Gemini generated addon files" || echo "No changes"
           git push
           
