@@ -35,7 +35,8 @@ jobs:
 
           # Konfiguration
           genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-          model = genai.GenerativeModel('gemini-1.5-pro')
+          # Wir nutzen das stabile Standard-Modell
+          model = genai.GenerativeModel('gemini-pro')
 
           user_request = os.environ['ISSUE_BODY']
 
@@ -44,31 +45,27 @@ jobs:
           Deine Aufgabe: Erstelle vollständigen Code basierend auf der Anfrage.
           
           WICHTIGE REGELN:
-          1. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Keine Markdown-Blöcke, kein Text davor oder danach.
-          2. Das Format muss sein: {\"dateipfad/dateiname.ext\": \"Dateiinhalt\", ...}
-          3. Verwende KEINE Umlaute (ä,ö,ü) in Dateinamen oder IDs.
-          4. IDs müssen immer Quotes haben (z.B. \"namespace:item\").
-          5. Erstelle immer eine manifest.json, wenn sie fehlt.
+          1. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Keine Markdown-Blöcke.
+          2. Format: {\"dateipfad/dateiname.ext\": \"Dateiinhalt\", ...}
+          3. KEINE Umlaute in Dateinamen/IDs.
+          4. IDs immer in Quotes (z.B. \"ns:item\").
+          5. Erstelle immer eine manifest.json.
           '''
 
-          response = model.generate_content(system_prompt + '\n\nAnfrage: ' + user_request)
-          
           try:
-              # Bereinigen der Antwort, falls Gemini doch Markdown nutzt
+              response = model.generate_content(system_prompt + '\n\nAnfrage: ' + user_request)
+              # Bereinigen der Antwort
               clean_response = response.text.replace('```json', '').replace('```', '').strip()
               files = json.loads(clean_response)
 
               for filepath, content in files.items():
-                  # Ordner erstellen falls nötig
                   os.makedirs(os.path.dirname(filepath), exist_ok=True)
-                  # Datei schreiben
                   with open(filepath, 'w', encoding='utf-8') as f:
                       f.write(content)
                   print(f'Datei erstellt: {filepath}')
 
           except Exception as e:
-              print('Fehler beim Verarbeiten der Antwort:', e)
-              print('Rohantwort war:', response.text)
+              print('Fehler:', e)
               exit(1)
           "
 
@@ -77,6 +74,6 @@ jobs:
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
-          git commit -m "Gemini hat Code erstellt basierend auf Issue" || echo "Keine Änderungen"
+          git commit -m "Gemini hat Code erstellt" || echo "Keine Änderungen"
           git push
           
