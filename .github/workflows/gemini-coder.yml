@@ -1,0 +1,82 @@
+name: Gemini Addon Generator
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write
+
+jobs:
+  build-addon:
+    if: contains(github.event.issue.title, 'Gemini')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Google AI Library
+        run: pip install google-generativeai
+
+      - name: Ask Gemini to code
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python -c "
+          import os
+          import json
+          import google.generativeai as genai
+
+          # Konfiguration
+          genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+          model = genai.GenerativeModel('gemini-1.5-flash')
+
+          user_request = os.environ['ISSUE_BODY']
+
+          system_prompt = '''
+          Du bist ein Experte für Minecraft Bedrock Add-Ons.
+          Deine Aufgabe: Erstelle vollständigen Code basierend auf der Anfrage.
+          
+          WICHTIGE REGELN:
+          1. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Keine Markdown-Blöcke, kein Text davor oder danach.
+          2. Das Format muss sein: {\"dateipfad/dateiname.ext\": \"Dateiinhalt\", ...}
+          3. Verwende KEINE Umlaute (ä,ö,ü) in Dateinamen oder IDs.
+          4. IDs müssen immer Quotes haben (z.B. \"namespace:item\").
+          5. Erstelle immer eine manifest.json, wenn sie fehlt.
+          '''
+
+          response = model.generate_content(system_prompt + '\n\nAnfrage: ' + user_request)
+          
+          try:
+              # Bereinigen der Antwort, falls Gemini doch Markdown nutzt
+              clean_response = response.text.replace('```json', '').replace('```', '').strip()
+              files = json.loads(clean_response)
+
+              for filepath, content in files.items():
+                  # Ordner erstellen falls nötig
+                  os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                  # Datei schreiben
+                  with open(filepath, 'w', encoding='utf-8') as f:
+                      f.write(content)
+                  print(f'Datei erstellt: {filepath}')
+
+          except Exception as e:
+              print('Fehler beim Verarbeiten der Antwort:', e)
+              print('Rohantwort war:', response.text)
+              exit(1)
+          "
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "Gemini Bot"
+          git config --global user.email "bot@noreply.github.com"
+          git add .
+          git commit -m "Gemini hat Code erstellt basierend auf Issue" || echo "Keine Änderungen"
+          git push
+          
