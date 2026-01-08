@@ -37,7 +37,8 @@ jobs:
           try:
               # Setup
               genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-              model = genai.GenerativeModel('gemini-1.5-flash')
+              # WICHTIG: Wir nutzen das Standard-Modell, das immer funktioniert
+              model = genai.GenerativeModel('gemini-pro')
               
               prompt = '''
               You are a Minecraft Bedrock Addon Expert.
@@ -56,13 +57,13 @@ jobs:
               
               # Cleanup response
               text = response.text.strip()
+              # Remove Markdown markers safely
               if text.startswith('\`\`\`json'):
                   text = text[7:]
-              if text.startswith('\`\`\ையான'):
+              if text.startswith('\`\`\`'):
                   text = text[3:]
               if text.endswith('\`\`\ையான'):
                   text = text[:-3]
-              # Remove Markdown markers safely
               text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
 
               data = json.loads(text)
