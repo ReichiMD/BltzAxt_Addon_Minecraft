@@ -16,76 +16,72 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install Google AI Library (Upgrade)
+      - name: Install Library
         run: pip install -U google-generativeai
 
-      - name: Ask Gemini to code
+      - name: Create Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
-          python -c "
+          cat <<EOF > generator.py
           import os
           import json
           import google.generativeai as genai
 
-          # Konfiguration
-          genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-          
-          # Wir nutzen das aktuelle Flash-Modell
-          model = genai.GenerativeModel('gemini-1.5-flash')
-
-          user_request = os.environ['ISSUE_BODY']
-
-          system_prompt = '''
-          Du bist ein Experte für Minecraft Bedrock Add-Ons.
-          Deine Aufgabe: Erstelle vollständigen Code basierend auf der Anfrage.
-          
-          WICHTIGE REGELN:
-          1. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt.
-          2. Das Format ist: {\"dateipfad/dateiname.ext\": \"Dateiinhalt\"}
-          3. KEINE Markdown-Blöcke (\`\`\`json), nur das rohe JSON.
-          4. Erstelle immer eine manifest.json (UUIDs müssen generiert werden).
-          '''
-
           try:
-              response = model.generate_content(system_prompt + '\n\nAnfrage: ' + user_request)
+              genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+              model = genai.GenerativeModel('gemini-1.5-flash')
               
-              # Bereinigung (falls die KI doch Text drumherum schreibt)
-              text = response.text
-              if '```json' in text:
-                  text = text.split('```json')[1].split('```')[0]
-              elif '```' in text:
-                  text = text.split('```')[1].split('```')[0]
+              prompt = '''
+              You are a Minecraft Bedrock Addon Expert.
+              Create valid JSON files for the requested addon.
+              RULES:
+              1. Output ONLY valid JSON. format: {"path/file.json": "content"}
+              2. NO markdown blocks. NO text before/after.
+              3. NO umlauts in filenames.
+              4. UUIDs must be random.
+              '''
               
-              files = json.loads(text.strip())
-
-              for filepath, content in files.items():
-                  os.makedirs(os.path.dirname(filepath), exist_ok=True)
-                  with open(filepath, 'w', encoding='utf-8') as f:
+              request = os.environ['ISSUE_BODY']
+              response = model.generate_content(prompt + "\nREQUEST: " + request)
+              
+              text = response.text.strip()
+              # Clean markdown if present
+              if text.startswith('```json'):
+                  text = text[7:]
+              if text.endswith('```'):
+                  text = text[:-3]
+              
+              data = json.loads(text)
+              
+              for path, content in data.items():
+                  os.makedirs(os.path.dirname(path), exist_ok=True)
+                  with open(path, 'w', encoding='utf-8') as f:
                       f.write(content)
-                  print(f'Datei erstellt: {filepath}')
-
+                  print(f"Created: {path}")
+                  
           except Exception as e:
-              print(f'FEHLER: {e}')
-              # Fallback: Zeige, was schief ging
-              try:
-                  print('Antwort der KI war:', response.text)
-              except:
-                  pass
+              print(f"Error: {e}")
               exit(1)
-          "
+          EOF
+
+      - name: Run Generator
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python generator.py
 
       - name: Commit changes
         run: |
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
-          git commit -m "Gemini hat Code erstellt (v1.5 Flash)" || echo "Keine Änderungen"
+          git commit -m "Gemini created addon files" || echo "No changes"
           git push
           
