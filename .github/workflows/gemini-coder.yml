@@ -44,21 +44,17 @@ jobs:
                   response = requests.get(f'{BASE_URL}/models?key={API_KEY}')
                   response.raise_for_status()
                   models = response.json().get('models', [])
-                  
-                  # Wir suchen ein Modell, das 'generateContent' unterstützt
                   for m in models:
                       name = m['name']
-                      if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini' in name:
+                      # Wir nehmen bevorzugt Flash oder Pro
+                      if 'generateContent' in m.get('supportedGenerationMethods', []) and ('flash' in name or 'pro' in name):
                           print(f'Gefundenes Modell: {name}')
                           return name
-                  
-                  # Fallback, falls die Suche nichts Eindeutiges liefert
-                  return 'models/gemini-pro'
+                  return 'models/gemini-pro' # Fallback
               except Exception as e:
                   print(f'Modell-Suche fehlgeschlagen: {e}')
                   return 'models/gemini-pro'
 
-          # 1. Modell automatisch finden
           model_name = get_available_model()
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
@@ -90,7 +86,6 @@ jobs:
                   print('API FEHLER:', response.text)
                   exit(1)
               
-              # Antwort auspacken
               result = response.json()
               try:
                   text_response = result['candidates'][0]['content']['parts'][0]['text']
@@ -98,9 +93,7 @@ jobs:
                   print('Unerwartetes Antwort-Format:', result)
                   exit(1)
 
-              # Bereinigung
               text = text_response.strip()
-              # Entferne Markdown Formatierung
               if text.startswith('\`\`\`json'): text = text[7:]
               if text.startswith('\`\`\`'): text = text[3:]
               if text.endswith('\`\`\ையான'): text = text[:-3]
@@ -108,9 +101,13 @@ jobs:
 
               data = json.loads(text)
               
-              # Dateien schreiben
+              # Dateien schreiben (Jetzt sicher!)
               for path, content in data.items():
-                  os.makedirs(os.path.dirname(path), exist_ok=True)
+                  directory = os.path.dirname(path)
+                  # Nur Ordner erstellen, wenn einer im Pfad ist
+                  if directory:
+                      os.makedirs(directory, exist_ok=True)
+                  
                   with open(path, 'w', encoding='utf-8') as f:
                       f.write(content)
                   print(f'Datei erstellt: {path}')
