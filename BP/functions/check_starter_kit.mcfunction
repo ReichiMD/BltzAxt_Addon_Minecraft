@@ -1,1 +1,0 @@
-execute as @a at @s unless entity @s[tag=has_starter_kit] run function award_starter_kit

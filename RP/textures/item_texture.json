@@ -1,9 +1,0 @@
-{
-    "resource_pack_name": "test_addon_rp",
-    "texture_name": "atlas.items",
-    "texture_data": {
-        "test:ruby_sword_icon": {
-            "textures": "textures/items/ruby_sword_icon"
-        }
-    }
-}
