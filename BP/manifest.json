@@ -1,1 +1,24 @@
-{"format_version": 2,"header": {"name": "AI Test Addon","description": "Ein von KI generiertes Test-Add-on.","uuid": "1b9c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e","version": [1, 0, 0],"min_engine_version": [1, 16, 0]},"modules": [{"type": "data","uuid": "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c","version": [1, 0, 0]}],"dependencies": []}
+{
+  "format_version": 2,
+  "header": {
+    "description": "Behavior Pack for Ruby Sword Addon with Starter Kit",
+    "name": "Ruby Sword BP",
+    "uuid": "03ad0e6b-0708-41e3-855f-b5258e92f2c2",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "description": "Data module for functions",
+      "type": "data",
+      "uuid": "7b6e4e1f-7b19-4b68-8f53-b09b0b41c0b3",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "9f7f4e91-c6f9-4a0b-9c71-f9f3c7e3f8a4",
+      "version": [1, 0, 0]
+    }
+  ]
+}
