@@ -1,9 +1,9 @@
 {
-    "resource_pack_name": "Test Addon RP",
+    "resource_pack_name": "test_addon_rp",
     "texture_name": "atlas.items",
     "texture_data": {
-        "test:emerald_axe": {
-            "textures": "textures/items/diamond_axe"
+        "test:ruby_sword_icon": {
+            "textures": "textures/items/ruby_sword_icon"
         }
     }
 }
