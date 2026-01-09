@@ -47,3 +47,10 @@ STRICTLY FOLLOW THESE RULES TO AVOID BUILD ERRORS.
    * Do NOT invent items.
    * ❌ WRONG: minecraft:ruby (Does not exist)
    * ✅ CORRECT: minecraft:emerald, minecraft:diamond
+
+7. CREATIVE MENU CATEGORIES (Fix for "namespace prefix error")
+   * In 1.21+, "menu_category" -> "group" MUST use full identifiers.
+   * ❌ WRONG: "group": "axe"
+   * ✅ CORRECT: "group": "itemGroup.name.axe"
+   * ✅ CORRECT: "group": "itemGroup.name.sword"
+   * ✅ CORRECT: "group": "itemGroup.name.pickaxe"
