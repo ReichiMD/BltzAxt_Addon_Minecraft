@@ -54,3 +54,8 @@ STRICTLY FOLLOW THESE RULES TO AVOID BUILD ERRORS.
    * ✅ CORRECT: "group": "itemGroup.name.axe"
    * ✅ CORRECT: "group": "itemGroup.name.sword"
    * ✅ CORRECT: "group": "itemGroup.name.pickaxe"
+
+8. VERSIONING & STABILITY (CRITICAL RULE)
+   * RECIPES: ALWAYS use "format_version": "1.12.0".
+     Reason: Newer versions (1.20+) require complex "unlock data" logic. Version 1.12.0 works perfectly in 1.21+ and is instantly unlocked.
+   * GENERAL PRINCIPLE: Prefer stable, older format versions for simple JSON files (Recipes, Loot Tables) unless modern features are explicitly requested.
