@@ -1,2 +1,3 @@
-give @s test:ruby_sword
-tag @s add has_starter_kit
+tellraw @s {"rawtext":[{"text":"§aYou received a starter kit!"}]}
+give @s ruby_sword 1
+give @s minecraft:apple 5
