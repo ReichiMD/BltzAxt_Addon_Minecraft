@@ -1,1 +1,54 @@
-{"format_version":2,"header":{"name":"Test Addon BP","description":"Behavior Pack for Test Addon","uuid":"1a1b1c1d-2e2f-3a3b-4c4d-5e5f6a6b6c6d","version":[1,0,0],"min_engine_version":[1,20,0]},"modules":[{"type":"data","uuid":"7a7b7c7d-8e8f-9a9b-0c0d-1e1f2a2b2c2d","version":[1,0,0]}],"dependencies":[{"uuid":"3a3b3c3d-4e4f-5a5b-6c6d-7e7f8a8b8c8d","version":[1,0,0]}]}
+{
+    "format_version": 2,
+    "header": {
+        "name": "Test Addon BP",
+        "description": "Behavior Pack for Test Addon",
+        "uuid": "1a1b1c1d-2e2f-3a3b-4c4d-5e5f6a6b6c6d",
+        "version": [
+            1,
+            0,
+            1
+        ],
+        "min_engine_version": [
+            1,
+            21,
+            0
+        ]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "7a7b7c7d-8e8f-9a9b-0c0d-1e1f2a2b2c2d",
+            "version": [
+                1,
+                0,
+                1
+            ]
+        },
+        {
+            "uuid": "16e30096-7c9b-4654-a3f2-1081515272a8",
+            "version": [
+                1,
+                0,
+                1
+            ],
+            "type": "script",
+            "language": "javascript",
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "uuid": "3a3b3c3d-4e4f-5a5b-6c6d-7e7f8a8b8c8d",
+            "version": [
+                1,
+                0,
+                1
+            ]
+        },
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.3.0"
+        }
+    ]
+}
