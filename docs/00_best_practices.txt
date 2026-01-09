@@ -1,23 +1,49 @@
---- GOLDEN RULES for GEMINI (Strict Compliance Required) ---
+--- GOLDEN RULES & CRITICAL SYNTAX (MINECRAFT BEDROCK 1.21+) ---
+STRICTLY FOLLOW THESE RULES TO AVOID BUILD ERRORS.
 
-1. FILE STRUCTURE (CRITICAL FIX for "cannot be loaded from resource packs")
-   * **Behavior Pack (BP):** The item definition JSON MUST go here.
-     ✅ Path: `BP/items/my_item.json`
-     ❌ NEVER put item JSONs in `RP/items/`.
-   * **Resource Pack (RP):** Only for textures.
-     ✅ Path: `RP/textures/items/my_texture.png`
-     ✅ Path: `RP/item_texture.json` (Texture mapping)
+1. FILE STRUCTURE & LOCATIONS (CRITICAL)
+   * Behavior Pack (BP): Contains LOGIC (Items, Entities, Recipes).
+     ✅ CORRECT: BP/items/my_item.json
+     ❌ WRONG: RP/items/my_item.json (NEVER put item definitions in RP!)
+   * Resource Pack (RP): Contains VISUALS (Textures, Models).
+     ✅ CORRECT: RP/textures/items/my_icon.png
 
-2. COMMAND SYNTAX (Fix for "Syntax Error")
-   * Always verify the namespace in commands.
-     ❌ WRONG: `give @s ruby_sword`
-     ✅ CORRECT: `give @s test:ruby_sword`
+2. MANIFEST DEPENDENCIES (Auto-Install Fix)
+   * The Behavior Pack (BP) MUST automatically load the Resource Pack (RP).
+   * ACTION:
+     1. Get the UUID from the Resource Pack's manifest header.
+     2. Add it to the Behavior Pack's manifest under "dependencies".
+     3. Ensure version numbers match.
 
-3. COMPONENT SYNTAX (Fix for "Expected Object")
-   * Use the 1.21 object format for display names.
-     ❌ WRONG: `"minecraft:display_name": "Name"`
-     ✅ CORRECT: `"minecraft:display_name": { "value": "Name" }`
+3. ITEM DEFINITION SYNTAX (Format 1.21.0+)
+   * Display Name: Must be an object, not a string.
+     ❌ WRONG: "minecraft:display_name": "Super Axe"
+     ✅ CORRECT: "minecraft:display_name": { "value": "Super Axe" }
+   * Creative Menu: Use full identifiers.
+     ❌ WRONG: "group": "sword"
+     ✅ CORRECT: "group": "itemGroup.name.sword"
+     (Valid groups: .axe, .pickaxe, .shovel, .hoe, .helmet, .chestplate, .leggings, .boots)
 
-4. MENU CATEGORY (Fix for "Namespace Prefix")
-   * Use full group identifiers.
-     ✅ CORRECT: `"group": "itemGroup.name.sword"`
+4. TEXTURE REGISTRATION
+   * Placing a .png file is NOT enough. It must be linked in item_texture.json.
+   * File: RP/textures/item_texture.json
+   * Format:
+     {
+       "resource_pack_name": "vanilla",
+       "texture_data": {
+         "my_item_id": { "textures": "textures/items/my_texture_file_name" }
+       }
+     }
+   * In Item JSON: "minecraft:icon": "my_item_id"
+
+5. COMMANDS & FUNCTIONS
+   * Always use the NAMESPACE in commands.
+     ❌ WRONG: give @s emerald_axe
+     ✅ CORRECT: give @s test:emerald_axe
+   * For Starting Kits: Use simple .mcfunction files, not complex main.js scripts.
+     File: BP/functions/give_kit.mcfunction
+
+6. VANILLA ITEMS
+   * Do NOT invent items.
+   * ❌ WRONG: minecraft:ruby (Does not exist)
+   * ✅ CORRECT: minecraft:emerald, minecraft:diamond
