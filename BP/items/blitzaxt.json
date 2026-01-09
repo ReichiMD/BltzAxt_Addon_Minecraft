@@ -1,0 +1,32 @@
+{
+    "format_version": "1.21.130",
+    "minecraft:item": {
+        "description": {
+            "identifier": "test:blitzaxt",
+            "menu_category": {
+                "category": "equipment",
+                "group": "itemGroup.name.axe"
+            }
+        },
+        "components": {
+            "minecraft:icon": {
+                "textures": {
+                    "default": "test:blitzaxt_icon"
+                }
+            },
+            "minecraft:display_name": {
+                "value": "item.test:blitzaxt.name"
+            },
+            "minecraft:damage": 8,
+            "minecraft:durability": {
+                "max_durability": 250
+            },
+            "minecraft:hand_equipped": true,
+            "minecraft:enchantable": {
+                "slot": "axe",
+                "value": 14
+            },
+            "test:lightning_strike_on_hit": {}
+        }
+    }
+}
