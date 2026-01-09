@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator (ZIP Support)
+      - name: Run Generator (With Reset Button)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -35,148 +35,117 @@ jobs:
           import requests
           import glob
           import zipfile
-          import io
+          import shutil
 
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
+          USER_REQUEST = os.environ['ISSUE_BODY']
+
+          # --- DER RESET KNOPF ---
+          # Wenn 'RESET PROJECT' im Text steht, löschen wir alles Alte.
+          if 'RESET PROJECT' in USER_REQUEST:
+              print('!!! RESET PROJECT AUSGEFÜHRT !!!')
+              if os.path.exists('BP'): shutil.rmtree('BP')
+              if os.path.exists('RP'): shutil.rmtree('RP')
+              print('--- Alte BP/RP Ordner wurden gelöscht ---')
+              # Wir tun so, als gäbe es keine Manifeste, damit er frische UUIDs baut
+              manifest_content = ''
+          else:
+              # 3. EXISTIERENDE MANIFESTS LESEN (Nur wenn KEIN Reset)
+              manifest_content = ''
+              for m_path in ['BP/manifest.json', 'RP/manifest.json', 'manifest.json']:
+                  if os.path.exists(m_path):
+                      try:
+                          with open(m_path, 'r', encoding='utf-8') as f:
+                              manifest_content += f'\n--- EXISTING FILE ({m_path}) ---\n'
+                              manifest_content += f.read() + '\n'
+                          print(f'Gelesen für Update: {m_path}')
+                      except: pass
 
           # 1. README LESEN
           try:
               with open('README.md', 'r', encoding='utf-8') as f:
                   readme_content = f.read()
               print('--- README geladen ---')
-          except:
-              readme_content = 'No rules found.'
+          except: readme_content = 'No rules found.'
 
-          # 2. DOKUMENTATION LESEN (MD, TXT + ZIP!)
+          # 2. DOKUMENTATION LESEN (MD, TXT, ZIP)
           docs_content = ''
-          # Wir suchen nach .md, .txt UND .zip
           doc_files = glob.glob('docs/**/*.md', recursive=True) + \
                       glob.glob('docs/**/*.txt', recursive=True) + \
                       glob.glob('docs/**/*.zip', recursive=True)
           
           if doc_files:
-              print(f'--- Verarbeite {len(doc_files)} Dokumentations-Quellen ---')
+              print(f'--- Verarbeite {len(doc_files)} Doku-Quellen ---')
               for file_path in doc_files:
                   try:
-                      # Fall A: Normale Textdatei
-                      if file_path.endswith('.md') or file_path.endswith('.txt'):
-                          with open(file_path, 'r', encoding='utf-8') as f:
-                              filename = os.path.basename(file_path)
-                              docs_content += f'\n--- DOCS: {filename} ---\n'
-                              docs_content += f.read() + '\n'
-                      
-                      # Fall B: ZIP-Archiv (Der Gamechanger)
-                      elif file_path.endswith('.zip'):
-                          print(f'Entpacke Wissen aus: {file_path}...')
+                      if file_path.endswith('.zip'):
                           with zipfile.ZipFile(file_path, 'r') as z:
                               for z_filename in z.namelist():
-                                  # Nur Text-Dateien im ZIP lesen, keine Bilder/Müll
                                   if z_filename.endswith('.md') or z_filename.endswith('.txt'):
                                       try:
                                           with z.open(z_filename) as zf:
-                                              # Inhalt dekodieren
                                               content = zf.read().decode('utf-8', errors='ignore')
-                                              docs_content += f'\n--- DOCS (aus ZIP): {z_filename} ---\n'
-                                              docs_content += content + '\n'
+                                              docs_content += f'\n--- DOCS (ZIP): {z_filename} ---\n' + content
                                       except: pass
-                  except Exception as e:
-                      print(f'Konnte {file_path} nicht lesen: {e}')
-          else:
-              print('--- INFO: Keine Docs gefunden. ---')
-
-          # 3. EXISTIERENDE MANIFESTS LESEN
-          manifest_content = ''
-          for m_path in ['BP/manifest.json', 'RP/manifest.json', 'manifest.json']:
-              if os.path.exists(m_path):
-                  try:
-                      with open(m_path, 'r', encoding='utf-8') as f:
-                          manifest_content += f'\n--- EXISTING FILE ({m_path}) ---\n'
-                          manifest_content += f.read() + '\n'
-                      print(f'Gelesen für Update: {m_path}')
+                      else:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              docs_content += f'\n--- DOCS: {os.path.basename(file_path)} ---\n' + f.read()
                   except: pass
 
-          # 4. KI Auswahl & Prompt (Wie gehabt)
-          def get_working_model():
-              print('--- Modell-Suche ---')
+          # 4. KI CONFIG
+          def get_model():
               try:
                   url = f'{BASE_URL}/models?key={API_KEY}'
-                  response = requests.get(url)
-                  if response.status_code != 200: return None
-                  data = response.json()
-                  models = data.get('models', [])
-                  valid_models = [m['name'] for m in models if 'generateContent' in m.get('supportedGenerationMethods', [])]
-                  
-                  if not valid_models: return None
-                  for vm in valid_models:
-                      if 'flash' in vm and '1.5' in vm:
-                          return vm
-                  return valid_models[0]
-              except: return None
+                  r = requests.get(url)
+                  models = r.json().get('models', [])
+                  for m in models:
+                      if 'flash' in m['name'] and '1.5' in m['name']: return m['name']
+                  return 'models/gemini-1.5-flash'
+              except: return 'models/gemini-1.5-flash'
 
-          model_name = get_working_model() or 'models/gemini-1.5-flash'
+          model_name = get_model()
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
           prompt_text = f'''
-          You are a Minecraft Bedrock Addon Expert.
+          You are a Minecraft Bedrock Addon Expert (1.21+).
           
-          --- KNOWLEDGE BASE (DOCS) ---
+          --- KNOWLEDGE BASE ---
           {docs_content}
           
-          --- PROJECT RULES (README) ---
+          --- RULES ---
           {readme_content}
           
-          --- CURRENT PROJECT STATE ---
-          If manifests exist, KEEP UUIDs, only increment version:
+          --- EXISTING STATE ---
           {manifest_content}
-          --- END STATE ---
           
           TECHNICAL CONSTRAINTS:
-          1. Output ONLY valid JSON. format: {{\"path/file.json\": \"content\"}}
-          2. NO markdown blocks.
-          3. Ensure manifest.json is included.
+          1. Output ONLY valid JSON: {{\"path/file.json\": \"content\"}}
+          2. Ensure manifest.json is included (create NEW ones if none exist).
+          3. STRICTLY follow folder structure: Items in BP/items, Textures in RP/textures.
           '''
           
-          user_request = os.environ['ISSUE_BODY']
-          
-          payload = {
-              'contents': [{
-                  'parts': [{'text': prompt_text + '\nUSER REQUEST: ' + user_request}]
-              }]
-          }
+          payload = {'contents': [{'parts': [{'text': prompt_text + '\nUSER REQUEST: ' + USER_REQUEST}]}]}
 
-          print(f'Sende Auftrag an {model_name}...')
-          
+          print(f'Sende an {model_name}...')
           try:
               response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
               if response.status_code != 200:
-                  print('API ERROR:', response.text)
+                  print('Error:', response.text)
                   exit(1)
               
-              result = response.json()
-              text = result['candidates'][0]['content']['parts'][0]['text']
-              
-              text = text.strip()
-              if text.startswith('\`\`\`json'): text = text[7:]
-              if text.startswith('\`\`\`'): text = text[3:]
+              text = response.json()['candidates'][0]['content']['parts'][0]['text']
               text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
-
               data = json.loads(text)
               
               for path, content in data.items():
                   directory = os.path.dirname(path)
                   if directory: os.makedirs(directory, exist_ok=True)
                   
-                  # ROBUST WRITE FIX
-                  write_content = content
-                  if isinstance(content, (dict, list)):
-                      write_content = json.dumps(content, indent=4)
-                  elif not isinstance(content, str):
-                      write_content = str(content)
-
-                  with open(path, 'w', encoding='utf-8') as f:
-                      f.write(write_content)
-                  print(f'Datei erstellt/aktualisiert: {path}')
+                  write_content = json.dumps(content, indent=4) if isinstance(content, (dict, list)) else str(content)
+                  
+                  with open(path, 'w', encoding='utf-8') as f: f.write(write_content)
+                  print(f'Geschrieben: {path}')
 
           except Exception as e:
               print(f'FEHLER: {e}')
@@ -188,6 +157,6 @@ jobs:
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
-          git commit -m "Gemini generated addon files" || echo "No changes"
+          git commit -m "Gemini Update" || echo "No changes"
           git push
           
