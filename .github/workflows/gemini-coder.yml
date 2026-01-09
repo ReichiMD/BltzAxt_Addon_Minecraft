@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator (With Reset Button)
+      - name: Run Generator (Auto-Model Fix)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -41,17 +41,14 @@ jobs:
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
           USER_REQUEST = os.environ['ISSUE_BODY']
 
-          # --- DER RESET KNOPF ---
-          # Wenn 'RESET PROJECT' im Text steht, löschen wir alles Alte.
+          # --- 1. RESET LOGIK ---
           if 'RESET PROJECT' in USER_REQUEST:
               print('!!! RESET PROJECT AUSGEFÜHRT !!!')
               if os.path.exists('BP'): shutil.rmtree('BP')
               if os.path.exists('RP'): shutil.rmtree('RP')
-              print('--- Alte BP/RP Ordner wurden gelöscht ---')
-              # Wir tun so, als gäbe es keine Manifeste, damit er frische UUIDs baut
+              # Wir löschen auch die manifest cache variablen
               manifest_content = ''
           else:
-              # 3. EXISTIERENDE MANIFESTS LESEN (Nur wenn KEIN Reset)
               manifest_content = ''
               for m_path in ['BP/manifest.json', 'RP/manifest.json', 'manifest.json']:
                   if os.path.exists(m_path):
@@ -59,17 +56,13 @@ jobs:
                           with open(m_path, 'r', encoding='utf-8') as f:
                               manifest_content += f'\n--- EXISTING FILE ({m_path}) ---\n'
                               manifest_content += f.read() + '\n'
-                          print(f'Gelesen für Update: {m_path}')
                       except: pass
 
-          # 1. README LESEN
+          # --- 2. DOKUMENTATION & README ---
           try:
-              with open('README.md', 'r', encoding='utf-8') as f:
-                  readme_content = f.read()
-              print('--- README geladen ---')
+              with open('README.md', 'r', encoding='utf-8') as f: readme_content = f.read()
           except: readme_content = 'No rules found.'
 
-          # 2. DOKUMENTATION LESEN (MD, TXT, ZIP)
           docs_content = ''
           doc_files = glob.glob('docs/**/*.md', recursive=True) + \
                       glob.glob('docs/**/*.txt', recursive=True) + \
@@ -93,18 +86,40 @@ jobs:
                               docs_content += f'\n--- DOCS: {os.path.basename(file_path)} ---\n' + f.read()
                   except: pass
 
-          # 4. KI CONFIG
-          def get_model():
+          # --- 3. ROBUSTE MODELL-SUCHE (Der Fix) ---
+          def get_best_model():
+              print('--- Suche verfügbare Modelle ---')
               try:
+                  # Wir fragen die API, was da ist
                   url = f'{BASE_URL}/models?key={API_KEY}'
-                  r = requests.get(url)
-                  models = r.json().get('models', [])
-                  for m in models:
-                      if 'flash' in m['name'] and '1.5' in m['name']: return m['name']
-                  return 'models/gemini-1.5-flash'
-              except: return 'models/gemini-1.5-flash'
+                  response = requests.get(url)
+                  if response.status_code != 200:
+                      print('Konnte Modell-Liste nicht laden, nutze Fallback.')
+                      return 'models/gemini-1.5-flash'
+                  
+                  data = response.json()
+                  available_models = data.get('models', [])
+                  
+                  # Wir suchen Modelle, die 'generateContent' können
+                  candidates = [m['name'] for m in available_models if 'generateContent' in m.get('supportedGenerationMethods', [])]
+                  
+                  if not candidates:
+                      return 'models/gemini-1.5-flash'
 
-          model_name = get_model()
+                  # Priorität: Flash -> Pro -> Irgendwas
+                  for c in candidates:
+                      if 'flash' in c and '1.5' in c: return c
+                  for c in candidates:
+                      if 'flash' in c: return c
+                  
+                  # Nimm einfach das erste, das funktioniert
+                  return candidates[0]
+              except:
+                  return 'models/gemini-1.5-flash'
+
+          model_name = get_best_model()
+          print(f'--- NUTZE MODELL: {model_name} ---')
+          
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
           prompt_text = f'''
@@ -121,22 +136,28 @@ jobs:
           
           TECHNICAL CONSTRAINTS:
           1. Output ONLY valid JSON: {{\"path/file.json\": \"content\"}}
-          2. Ensure manifest.json is included (create NEW ones if none exist).
-          3. STRICTLY follow folder structure: Items in BP/items, Textures in RP/textures.
+          2. Ensure manifest.json is included.
+          3. STRICTLY follow folder structure (BP vs RP).
           '''
           
           payload = {'contents': [{'parts': [{'text': prompt_text + '\nUSER REQUEST: ' + USER_REQUEST}]}]}
 
-          print(f'Sende an {model_name}...')
           try:
               response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
               if response.status_code != 200:
-                  print('Error:', response.text)
+                  print('API ERROR:', response.text)
                   exit(1)
               
               text = response.json()['candidates'][0]['content']['parts'][0]['text']
               text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
-              data = json.loads(text)
+              
+              try:
+                  data = json.loads(text)
+              except:
+                  # Fallback falls Markdown-Reste da sind
+                  start = text.find('{')
+                  end = text.rfind('}') + 1
+                  data = json.loads(text[start:end])
               
               for path, content in data.items():
                   directory = os.path.dirname(path)
@@ -157,6 +178,6 @@ jobs:
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
-          git commit -m "Gemini Update" || echo "No changes"
+          git commit -m "Gemini generated addon files" || echo "No changes"
           git push
           
