@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator (Docs + Readme + Manifests)
+      - name: Run Generator (Robust Save Fix)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -38,7 +38,7 @@ jobs:
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
-          # 1. README LESEN (Regeln)
+          # 1. README LESEN
           try:
               with open('README.md', 'r', encoding='utf-8') as f:
                   readme_content = f.read()
@@ -47,7 +47,7 @@ jobs:
               readme_content = 'No rules found.'
               print('--- INFO: Keine README gefunden ---')
 
-          # 2. DOKUMENTATION LESEN (Wissen)
+          # 2. DOKUMENTATION LESEN
           docs_content = ''
           doc_files = glob.glob('docs/**/*.md', recursive=True) + glob.glob('docs/**/*.txt', recursive=True)
           
@@ -63,7 +63,7 @@ jobs:
           else:
               print('--- INFO: Keine Docs gefunden. ---')
 
-          # 3. EXISTIERENDE MANIFESTS LESEN (UUIDs retten)
+          # 3. EXISTIERENDE MANIFESTS LESEN
           manifest_content = ''
           for m_path in ['BP/manifest.json', 'RP/manifest.json', 'manifest.json']:
               if os.path.exists(m_path):
@@ -149,7 +149,20 @@ jobs:
               for path, content in data.items():
                   directory = os.path.dirname(path)
                   if directory: os.makedirs(directory, exist_ok=True)
-                  with open(path, 'w', encoding='utf-8') as f: f.write(content)
+                  
+                  # HIER IST DER FIX: Wir prüfen, was ankommt
+                  mode = 'w'
+                  write_content = content
+                  
+                  # Wenn die KI ein Objekt schickt, wandeln wir es in JSON-Text um
+                  if isinstance(content, (dict, list)):
+                      write_content = json.dumps(content, indent=4)
+                  # Wenn es kein String ist, machen wir es sicherheitshalber zum String
+                  elif not isinstance(content, str):
+                      write_content = str(content)
+
+                  with open(path, 'w', encoding='utf-8') as f:
+                      f.write(write_content)
                   print(f'Datei erstellt/aktualisiert: {path}')
 
           except Exception as e:
