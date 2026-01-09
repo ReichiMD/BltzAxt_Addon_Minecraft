@@ -1,11 +1,18 @@
-import { world, system } from "@minecraft/server";
+import { world, system, ItemStack } from "@minecraft/server";
 
-const itemIdentifier = "test:emerald_axe";
-
-world.afterEvents.playerSpawn.subscribe((event) => {
-    const player = event.player;
-    system.run(() => {
-        player.runCommandAsync(`give "${player.name}" ${itemIdentifier}`);
-        player.sendMessage(`You received a ${itemIdentifier}!`);
+// Wait until the world is loaded to register events
+world.afterEvents.worldLoad.subscribe(() => {
+    world.afterEvents.playerSpawn.subscribe((event) => {
+        const player = event.player;
+        // Give the item only on initial spawn
+        if (event.initialSpawn) {
+            system.run(() => {
+                // Create the Emerald Axe item stack
+                const emeraldAxe = new ItemStack("test:emerald_axe", 1);
+                // Get the player's inventory and add the item
+                player.getComponent("minecraft:inventory").container.addItem(emeraldAxe);
+                player.sendMessage("Du hast eine Smaragd Axt erhalten!");
+            });
+        }
     });
 });

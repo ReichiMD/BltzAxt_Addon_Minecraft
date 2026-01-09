@@ -1,5 +1,5 @@
 {
-    "resource_pack_name": "wiki",
+    "resource_pack_name": "Test Addon RP",
     "texture_name": "atlas.items",
     "texture_data": {
         "test:emerald_axe": {
