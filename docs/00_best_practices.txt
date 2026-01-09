@@ -1,0 +1,23 @@
+--- GOLDEN RULES for GEMINI (Strict Compliance Required) ---
+
+1. FILE STRUCTURE (CRITICAL FIX for "cannot be loaded from resource packs")
+   * **Behavior Pack (BP):** The item definition JSON MUST go here.
+     ✅ Path: `BP/items/my_item.json`
+     ❌ NEVER put item JSONs in `RP/items/`.
+   * **Resource Pack (RP):** Only for textures.
+     ✅ Path: `RP/textures/items/my_texture.png`
+     ✅ Path: `RP/item_texture.json` (Texture mapping)
+
+2. COMMAND SYNTAX (Fix for "Syntax Error")
+   * Always verify the namespace in commands.
+     ❌ WRONG: `give @s ruby_sword`
+     ✅ CORRECT: `give @s test:ruby_sword`
+
+3. COMPONENT SYNTAX (Fix for "Expected Object")
+   * Use the 1.21 object format for display names.
+     ❌ WRONG: `"minecraft:display_name": "Name"`
+     ✅ CORRECT: `"minecraft:display_name": { "value": "Name" }`
+
+4. MENU CATEGORY (Fix for "Namespace Prefix")
+   * Use full group identifiers.
+     ✅ CORRECT: `"group": "itemGroup.name.sword"`
