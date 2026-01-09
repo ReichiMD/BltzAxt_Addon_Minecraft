@@ -1,28 +1,65 @@
-import { world, system, ItemStack } from '@minecraft/server';
-import './lightning_axe_component.js'; // Import the custom item component registration
+import { world, system, Player, Entity, Vector3, EquipmentSlot, ItemStack } from "@minecraft/server";
 
-const BLITZAXT_IDENTIFIER = "test:blitzaxt";
-const HAS_BLITZAXT_KIT_PROPERTY = "test:has_blitzaxt_kit";
+// --- Blitz-Axt Funktionalität --- 
 
-// Function to give the Blitzaxt to a player if they don't have it yet
-function giveBlitzaxtKit(player) {
-    if (!player.getDynamicProperty(HAS_BLITZAXT_KIT_PROPERTY)) {
-        const blitzaxt = new ItemStack(BLITZAXT_IDENTIFIER, 1);
-        player.getComponent('inventory')?.container?.addItem(blitzaxt);
-        player.sendMessage("Du hast eine Blitzaxt erhalten!");
-        player.setDynamicProperty(HAS_BLITZAXT_KIT_PROPERTY, true);
+// Event-Listener für Angriffe auf Entitäten
+world.afterEvents.entityHitEntity.subscribe((event) => {
+    const attacker = event.attackingEntity; // Der angreifende Entität
+
+    // Prüfen, ob der Angreifer ein Spieler ist
+    if (!(attacker instanceof Player)) {
+        return;
     }
-}
 
-world.afterEvents.worldLoad.subscribe(() => {
-    // Give Blitzaxt to all players already in the world when it loads
-    for (const player of world.getPlayers()) {
-        giveBlitzaxtKit(player);
+    // Überprüfen, welches Item der Spieler in der Haupt-Hand hält
+    const equippable = attacker.getComponent("minecraft:equippable");
+    if (!equippable) {
+        return;
+    }
+
+    const mainhandSlot = equippable.getEquipmentSlot(EquipmentSlot.Mainhand);
+    if (!mainhandSlot.hasItem()) {
+        return;
+    }
+
+    const heldItem = mainhandSlot.getItem();
+
+    // Wenn der Spieler eine Eisenaxt hält, Blitze spawnen
+    if (heldItem.typeId === "minecraft:iron_axe") {
+        const playerLocation = attacker.location;
+        const viewDirection = attacker.getViewDirection();
+        const strikeDistance = 5; // Blitze 5 Blöcke vor dem Spieler spawnen
+
+        const lightningX = playerLocation.x + viewDirection.x * strikeDistance;
+        const lightningY = playerLocation.y + viewDirection.y * strikeDistance;
+        const lightningZ = playerLocation.z + viewDirection.z * strikeDistance;
+
+        const strikeLocation = { x: lightningX, y: lightningY, z: lightningZ };
+        const dimension = attacker.dimension;
+
+        // Blitze spawnen
+        system.run(() => {
+            dimension.spawnEntity("minecraft:lightning_bolt", strikeLocation);
+        });
     }
 });
 
-world.afterEvents.playerSpawn.subscribe((event) => {
-    // Give Blitzaxt to newly spawned players or players rejoining
-    const player = event.player;
-    giveBlitzaxtKit(player);
+// --- Start-Kit Funktionalität (für Tests) --- 
+
+// Event-Listener, der beim Laden der Welt ausgeführt wird, um sich für playerJoin zu abonnieren
+world.afterEvents.worldLoad.subscribe(() => {
+    world.afterEvents.playerJoin.subscribe((event) => {
+        const player = event.player;
+        const inventory = player.getComponent("minecraft:inventory");
+
+        if (inventory) {
+            const container = inventory.container;
+            if (container) {
+                // Gibt dem Spieler eine Eisenaxt
+                const ironAxe = new ItemStack("minecraft:iron_axe", 1);
+                container.addItem(ironAxe);
+                player.sendMessage("Du hast eine Blitzaxt (Eisenaxt) erhalten!");
+            }
+        }
+    });
 });
