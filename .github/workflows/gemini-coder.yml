@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator via Direct API (Smart-Select)
+      - name: Run Generator via Direct API (Safe-Mode)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -38,34 +38,34 @@ jobs:
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
-          def get_best_model():
-              print('Suche das intelligenteste verfügbare Modell...')
+          def get_working_model():
+              print('Prüfe verfügbare Modelle...')
               try:
                   response = requests.get(f'{BASE_URL}/models?key={API_KEY}')
                   response.raise_for_status()
                   models = response.json().get('models', [])
                   
-                  # Strategie 1: Versuche den 'Senior Developer' (Pro 1.5) zu finden
+                  # 1. Priorität: Der Senior (Pro 1.5)
                   for m in models:
-                      if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini-1.5-pro' in m['name']:
-                          print(f'GEFUNDEN: Senior Model (Pro 1.5) -> {m["name"]}')
+                      if 'gemini-1.5-pro' in m['name']:
+                          print(f'Upgrade erfolgreich: Nutze Senior Model ({m["name"]})')
                           return m['name']
                   
-                  # Strategie 2: Versuche den 'Schnellen Assistenten' (Flash 1.5) zu finden
+                  # 2. Priorität: Der Schnelle (Flash 1.5)
                   for m in models:
-                      if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini-1.5-flash' in m['name']:
-                          print(f'GEFUNDEN: Schnelles Model (Flash 1.5) -> {m["name"]}')
+                      if 'gemini-1.5-flash' in m['name']:
+                          print(f'Standard-Modus: Nutze Flash Model ({m["name"]})')
                           return m['name']
-                  
-                  # Strategie 3: Fallback auf Standard
-                  print('Nur Standard-Modell gefunden.')
-                  return 'models/gemini-pro'
                   
               except Exception as e:
-                  print(f'Fehler bei der Modellsuche: {e}. Nutze Fallback.')
-                  return 'models/gemini-pro'
+                  print(f'Konnte Liste nicht laden: {e}')
+              
+              # 3. Sicherheitsnetz (Falls Suche fehlschlägt, nimm das, was wir WISSEN, das geht)
+              print('Keine automatische Wahl möglich. Erzwinge Flash-Modell.')
+              return 'models/gemini-1.5-flash'
 
-          model_name = get_best_model()
+          # Modell wählen
+          model_name = get_working_model()
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
           prompt_text = '''
@@ -87,7 +87,7 @@ jobs:
               }]
           }
 
-          print(f'Sende Auftrag an KI...')
+          print(f'Sende Auftrag an {model_name}...')
           
           try:
               response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
@@ -111,7 +111,7 @@ jobs:
 
               data = json.loads(text)
               
-              # Dateien schreiben (Sicher)
+              # Dateien schreiben
               for path, content in data.items():
                   directory = os.path.dirname(path)
                   if directory:
