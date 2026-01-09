@@ -1,11 +1,12 @@
 {
-    "format_version": "1.21.130",
+    "format_version": "1.21.0",
     "minecraft:item": {
         "description": {
             "identifier": "test:god_sword",
             "menu_category": {
                 "category": "equipment",
-                "group": "itemGroup.name.sword"
+                "group": "itemGroup.name.sword",
+                "is_hidden_in_commands": false
             }
         },
         "components": {
@@ -29,10 +30,14 @@
                     }
                 ]
             },
+            "minecraft:icon": {
+                "textures": {
+                    "default": "test:god_sword"
+                }
+            },
             "minecraft:glint": true,
-            "minecraft:icon": "test:god_sword",
             "minecraft:display_name": {
-                "value": "One-Hit-Schwert"
+                "value": "item.test:god_sword.name"
             }
         }
     }
