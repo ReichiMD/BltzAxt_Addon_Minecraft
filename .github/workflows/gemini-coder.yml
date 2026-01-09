@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator (Robust Save Fix)
+      - name: Run Generator (ZIP Support)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -34,6 +34,8 @@ jobs:
           import json
           import requests
           import glob
+          import zipfile
+          import io
 
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
@@ -45,21 +47,41 @@ jobs:
               print('--- README geladen ---')
           except:
               readme_content = 'No rules found.'
-              print('--- INFO: Keine README gefunden ---')
 
-          # 2. DOKUMENTATION LESEN
+          # 2. DOKUMENTATION LESEN (MD, TXT + ZIP!)
           docs_content = ''
-          doc_files = glob.glob('docs/**/*.md', recursive=True) + glob.glob('docs/**/*.txt', recursive=True)
+          # Wir suchen nach .md, .txt UND .zip
+          doc_files = glob.glob('docs/**/*.md', recursive=True) + \
+                      glob.glob('docs/**/*.txt', recursive=True) + \
+                      glob.glob('docs/**/*.zip', recursive=True)
           
           if doc_files:
-              print(f'--- Lade {len(doc_files)} Doku-Dateien ---')
+              print(f'--- Verarbeite {len(doc_files)} Dokumentations-Quellen ---')
               for file_path in doc_files:
                   try:
-                      with open(file_path, 'r', encoding='utf-8') as f:
-                          filename = os.path.basename(file_path)
-                          docs_content += f'\n--- DOCUMENTATION: {filename} ---\n'
-                          docs_content += f.read() + '\n'
-                  except: pass
+                      # Fall A: Normale Textdatei
+                      if file_path.endswith('.md') or file_path.endswith('.txt'):
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              filename = os.path.basename(file_path)
+                              docs_content += f'\n--- DOCS: {filename} ---\n'
+                              docs_content += f.read() + '\n'
+                      
+                      # Fall B: ZIP-Archiv (Der Gamechanger)
+                      elif file_path.endswith('.zip'):
+                          print(f'Entpacke Wissen aus: {file_path}...')
+                          with zipfile.ZipFile(file_path, 'r') as z:
+                              for z_filename in z.namelist():
+                                  # Nur Text-Dateien im ZIP lesen, keine Bilder/Müll
+                                  if z_filename.endswith('.md') or z_filename.endswith('.txt'):
+                                      try:
+                                          with z.open(z_filename) as zf:
+                                              # Inhalt dekodieren
+                                              content = zf.read().decode('utf-8', errors='ignore')
+                                              docs_content += f'\n--- DOCS (aus ZIP): {z_filename} ---\n'
+                                              docs_content += content + '\n'
+                                      except: pass
+                  except Exception as e:
+                      print(f'Konnte {file_path} nicht lesen: {e}')
           else:
               print('--- INFO: Keine Docs gefunden. ---')
 
@@ -74,7 +96,7 @@ jobs:
                       print(f'Gelesen für Update: {m_path}')
                   except: pass
 
-          # 4. KI Auswahl
+          # 4. KI Auswahl & Prompt (Wie gehabt)
           def get_working_model():
               print('--- Modell-Suche ---')
               try:
@@ -86,11 +108,8 @@ jobs:
                   valid_models = [m['name'] for m in models if 'generateContent' in m.get('supportedGenerationMethods', [])]
                   
                   if not valid_models: return None
-
-                  # Bevorzuge Flash 1.5
                   for vm in valid_models:
                       if 'flash' in vm and '1.5' in vm:
-                          print(f'--- GEWÄHLT: {vm} (Flash 1.5) ---')
                           return vm
                   return valid_models[0]
               except: return None
@@ -98,7 +117,6 @@ jobs:
           model_name = get_working_model() or 'models/gemini-1.5-flash'
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
-          # 5. Der Prompt
           prompt_text = f'''
           You are a Minecraft Bedrock Addon Expert.
           
@@ -108,16 +126,15 @@ jobs:
           --- PROJECT RULES (README) ---
           {readme_content}
           
-          --- CURRENT PROJECT STATE (EXISTING FILES) ---
-          IMPORTANT: If manifests exist below, use their UUIDs and increment the version number. 
-          DO NOT generate new UUIDs if they are listed here:
+          --- CURRENT PROJECT STATE ---
+          If manifests exist, KEEP UUIDs, only increment version:
           {manifest_content}
           --- END STATE ---
           
           TECHNICAL CONSTRAINTS:
           1. Output ONLY valid JSON. format: {{\"path/file.json\": \"content\"}}
-          2. NO markdown blocks. NO text before/after.
-          3. Ensure manifest.json is included (updated version).
+          2. NO markdown blocks.
+          3. Ensure manifest.json is included.
           '''
           
           user_request = os.environ['ISSUE_BODY']
@@ -150,14 +167,10 @@ jobs:
                   directory = os.path.dirname(path)
                   if directory: os.makedirs(directory, exist_ok=True)
                   
-                  # HIER IST DER FIX: Wir prüfen, was ankommt
-                  mode = 'w'
+                  # ROBUST WRITE FIX
                   write_content = content
-                  
-                  # Wenn die KI ein Objekt schickt, wandeln wir es in JSON-Text um
                   if isinstance(content, (dict, list)):
                       write_content = json.dumps(content, indent=4)
-                  # Wenn es kein String ist, machen wir es sicherheitshalber zum String
                   elif not isinstance(content, str):
                       write_content = str(content)
 
