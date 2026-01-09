@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator via Direct API (Bulletproof)
+      - name: Run Generator (Log-Master + Readme)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -38,16 +38,23 @@ jobs:
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
+          # 1. README LESEN
+          try:
+              with open('README.md', 'r', encoding='utf-8') as f:
+                  readme_content = f.read()
+              print('--- README (Handbuch) geladen ---')
+          except Exception:
+              readme_content = 'No specific rules found.'
+              print('--- WARNUNG: Keine README gefunden! ---')
+
           def get_working_model():
-              print('--- START: Modell-Suche ---')
+              print('--- START: Modell-Suche (Detailliert) ---')
               try:
                   url = f'{BASE_URL}/models?key={API_KEY}'
                   response = requests.get(url)
                   
-                  # Wir drucken erst mal, ob der Schlüssel überhaupt geht
                   if response.status_code != 200:
                       print(f'FEHLER: Zugriff verweigert! Code {response.status_code}')
-                      print(response.text)
                       return None
                   
                   data = response.json()
@@ -55,15 +62,11 @@ jobs:
                   print(f'Google bietet uns {len(models)} Modelle an.')
 
                   valid_models = []
-                  
-                  # Wir schauen uns JEDES Modell an
                   for m in models:
-                      # Sicherer Zugriff, damit Python nicht abstürzt
                       name = m.get('name', 'Unbekannt')
                       methods = m.get('supportedGenerationMethods', [])
-                      
-                      # Nur Modelle, die Text schreiben können
                       if 'generateContent' in methods:
+                          # Wir loggen alles, damit du es siehst
                           print(f' - MÖGLICH: {name}')
                           valid_models.append(name)
                   
@@ -71,46 +74,50 @@ jobs:
                       print('KEINE passenden Modelle gefunden!')
                       return None
 
-                  # STRATEGIE: Wir nehmen bevorzugt Flash, sonst das allererste
+                  # Strategie: Flash 1.5 bevorzugt
                   for vm in valid_models:
                       if 'flash' in vm and '1.5' in vm:
                           print(f'--- GEWÄHLT: {vm} (Flash 1.5) ---')
                           return vm
                   
-                  # Fallback: Nimm einfach das erste, das funktioniert
+                  # Fallback
                   first_choice = valid_models[0]
                   print(f'--- GEWÄHLT: {first_choice} (Fallback) ---')
                   return first_choice
                   
               except Exception as e:
-                  print(f'PYTHON CRASH: {e}')
+                  print(f'PYTHON CRASH bei Suche: {e}')
                   return None
 
-          # 1. Modell holen
+          # 2. Modell finden
           model_name = get_working_model()
-          
           if not model_name:
-              print('ABBRUCH: Wir haben kein Modell gefunden. Bitte API Key prüfen.')
+              print('ABBRUCH: Kein Modell verfügbar.')
               exit(1)
 
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
-          prompt_text = '''
+          # 3. Prompt mit README
+          prompt_text = f'''
           You are a Minecraft Bedrock Addon Expert.
-          Create valid JSON files for the requested addon.
-          RULES:
-          1. Output ONLY valid JSON. format: {\"path/file.json\": \"content\"}
+          
+          --- PROJECT HANDBOOK (README) ---
+          Please follow these project-specific rules strictly:
+          {readme_content}
+          --- END HANDBOOK ---
+          
+          TECHNICAL CONSTRAINTS:
+          1. Output ONLY valid JSON. format: {{\"path/file.json\": \"content\"}}
           2. NO markdown blocks. NO text before/after.
           3. NO umlauts in filenames.
-          4. UUIDs must be random.
-          5. Ensure manifest.json is included.
+          4. Ensure manifest.json is included.
           '''
           
           user_request = os.environ['ISSUE_BODY']
           
           payload = {
               'contents': [{
-                  'parts': [{'text': prompt_text + '\nREQUEST: ' + user_request}]
+                  'parts': [{'text': prompt_text + '\nUSER REQUEST: ' + user_request}]
               }]
           }
 
@@ -118,7 +125,6 @@ jobs:
           
           try:
               response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
-              
               if response.status_code != 200:
                   print('API ANTWORT FEHLER:', response.text)
                   exit(1)
@@ -140,11 +146,8 @@ jobs:
               
               for path, content in data.items():
                   directory = os.path.dirname(path)
-                  if directory:
-                      os.makedirs(directory, exist_ok=True)
-                  
-                  with open(path, 'w', encoding='utf-8') as f:
-                      f.write(content)
+                  if directory: os.makedirs(directory, exist_ok=True)
+                  with open(path, 'w', encoding='utf-8') as f: f.write(content)
                   print(f'Datei erstellt: {path}')
 
           except Exception as e:
