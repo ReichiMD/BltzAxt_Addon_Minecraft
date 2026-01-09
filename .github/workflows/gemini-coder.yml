@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator via Direct API (Safe-Mode)
+      - name: Run Generator via Direct API (Ultimate-Fallback)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -38,34 +38,39 @@ jobs:
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
-          def get_working_model():
-              print('Prüfe verfügbare Modelle...')
+          def get_any_working_model():
+              print('--- DIAGNOSE START: Welche Modelle sind da? ---')
               try:
                   response = requests.get(f'{BASE_URL}/models?key={API_KEY}')
                   response.raise_for_status()
-                  models = response.json().get('models', [])
+                  data = response.json()
+                  models = data.get('models', [])
                   
-                  # 1. Priorität: Der Senior (Pro 1.5)
+                  # Wir drucken alle gefundenen Modelle ins Log (zur Sicherheit)
                   for m in models:
-                      if 'gemini-1.5-pro' in m['name']:
-                          print(f'Upgrade erfolgreich: Nutze Senior Model ({m["name"]})')
+                      print(f'Gesehen: {m["name"]}')
+
+                  # Strategie: Nimm das ERSTE Modell, das Text generieren kann
+                  for m in models:
+                      if 'generateContent' in m.get('supportedGenerationMethods', []):
+                          print(f'--- ENTSCHEIDUNG: Wähle {m["name"]} ---')
                           return m['name']
                   
-                  # 2. Priorität: Der Schnelle (Flash 1.5)
-                  for m in models:
-                      if 'gemini-1.5-flash' in m['name']:
-                          print(f'Standard-Modus: Nutze Flash Model ({m["name"]})')
-                          return m['name']
+                  print('KEIN passendes Modell in der Liste gefunden!')
+                  return None
                   
               except Exception as e:
-                  print(f'Konnte Liste nicht laden: {e}')
-              
-              # 3. Sicherheitsnetz (Falls Suche fehlschlägt, nimm das, was wir WISSEN, das geht)
-              print('Keine automatische Wahl möglich. Erzwinge Flash-Modell.')
-              return 'models/gemini-1.5-flash'
+                  print(f'FEHLER beim Laden der Liste: {e}')
+                  return None
 
-          # Modell wählen
-          model_name = get_working_model()
+          # 1. Modell finden
+          model_name = get_any_working_model()
+          
+          if not model_name:
+              # Letzter Verzweiflungs-Versuch, falls Liste leer war
+              print('Versuche blindes Fallback auf gemini-1.5-flash...')
+              model_name = 'models/gemini-1.5-flash'
+
           URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
           
           prompt_text = '''
@@ -93,7 +98,7 @@ jobs:
               response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
               
               if response.status_code != 200:
-                  print('API FEHLER:', response.text)
+                  print('API ANTWORT:', response.text)
                   exit(1)
               
               result = response.json()
@@ -111,7 +116,6 @@ jobs:
 
               data = json.loads(text)
               
-              # Dateien schreiben
               for path, content in data.items():
                   directory = os.path.dirname(path)
                   if directory:
