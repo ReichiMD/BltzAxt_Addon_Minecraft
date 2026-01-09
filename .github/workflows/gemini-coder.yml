@@ -24,7 +24,7 @@ jobs:
       - name: Install Requests
         run: pip install requests
 
-      - name: Run Generator (Auto-Model Fix)
+      - name: Run Generator (Smart Filter Edition)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -46,7 +46,6 @@ jobs:
               print('!!! RESET PROJECT AUSGEFÜHRT !!!')
               if os.path.exists('BP'): shutil.rmtree('BP')
               if os.path.exists('RP'): shutil.rmtree('RP')
-              # Wir löschen auch die manifest cache variablen
               manifest_content = ''
           else:
               manifest_content = ''
@@ -58,7 +57,7 @@ jobs:
                               manifest_content += f.read() + '\n'
                       except: pass
 
-          # --- 2. DOKUMENTATION & README ---
+          # --- 2. DOKUMENTATION (MIT SMART FILTER) ---
           try:
               with open('README.md', 'r', encoding='utf-8') as f: readme_content = f.read()
           except: readme_content = 'No rules found.'
@@ -68,54 +67,57 @@ jobs:
                       glob.glob('docs/**/*.txt', recursive=True) + \
                       glob.glob('docs/**/*.zip', recursive=True)
           
+          # Wörter, die wir für dieses Projekt brauchen
+          # Wir filtern die Doku, damit wir unter 250k Token bleiben
+          KEYWORDS = ['script', 'server', 'event', 'world', 'system', 'component'] 
+
           if doc_files:
-              print(f'--- Verarbeite {len(doc_files)} Doku-Quellen ---')
+              print(f'--- Verarbeite Doku-Quellen ---')
               for file_path in doc_files:
                   try:
+                      # ZIP-DATEIEN (Hier sitzt der Filter!)
                       if file_path.endswith('.zip'):
+                          print(f'Durchsuche ZIP: {file_path} nach Scripting-Infos...')
                           with zipfile.ZipFile(file_path, 'r') as z:
                               for z_filename in z.namelist():
                                   if z_filename.endswith('.md') or z_filename.endswith('.txt'):
-                                      try:
-                                          with z.open(z_filename) as zf:
-                                              content = zf.read().decode('utf-8', errors='ignore')
-                                              docs_content += f'\n--- DOCS (ZIP): {z_filename} ---\n' + content
-                                      except: pass
+                                      # TRICK: Nur lesen, wenn es ums Scripting geht!
+                                      is_relevant = any(k in z_filename.lower() for k in KEYWORDS)
+                                      
+                                      # Die best_practices Datei nehmen wir IMMER mit
+                                      if 'best_practices' in z_filename.lower(): is_relevant = True
+
+                                      if is_relevant:
+                                          try:
+                                              with z.open(z_filename) as zf:
+                                                  content = zf.read().decode('utf-8', errors='ignore')
+                                                  # Sicherheits-Limit: Keine riesigen Einzeldateien > 20kb
+                                                  if len(content) < 20000:
+                                                      docs_content += f'\n--- DOCS (ZIP): {z_filename} ---\n' + content
+                                          except: pass
+                      
+                      # NORMALE DATEIEN (best_practices.txt etc.)
                       else:
                           with open(file_path, 'r', encoding='utf-8') as f:
                               docs_content += f'\n--- DOCS: {os.path.basename(file_path)} ---\n' + f.read()
                   except: pass
+          
+          print(f'Doku-Länge (Zeichen): {len(docs_content)}')
 
-          # --- 3. ROBUSTE MODELL-SUCHE (Der Fix) ---
+          # --- 3. MODELL-SUCHE ---
           def get_best_model():
-              print('--- Suche verfügbare Modelle ---')
               try:
-                  # Wir fragen die API, was da ist
                   url = f'{BASE_URL}/models?key={API_KEY}'
                   response = requests.get(url)
-                  if response.status_code != 200:
-                      print('Konnte Modell-Liste nicht laden, nutze Fallback.')
-                      return 'models/gemini-1.5-flash'
-                  
+                  if response.status_code != 200: return 'models/gemini-1.5-flash'
                   data = response.json()
-                  available_models = data.get('models', [])
-                  
-                  # Wir suchen Modelle, die 'generateContent' können
-                  candidates = [m['name'] for m in available_models if 'generateContent' in m.get('supportedGenerationMethods', [])]
-                  
-                  if not candidates:
-                      return 'models/gemini-1.5-flash'
-
-                  # Priorität: Flash -> Pro -> Irgendwas
-                  for c in candidates:
-                      if 'flash' in c and '1.5' in c: return c
+                  candidates = [m['name'] for m in data.get('models', []) if 'generateContent' in m.get('supportedGenerationMethods', [])]
+                  if not candidates: return 'models/gemini-1.5-flash'
+                  # Priorisiere Flash (schnell & günstig)
                   for c in candidates:
                       if 'flash' in c: return c
-                  
-                  # Nimm einfach das erste, das funktioniert
                   return candidates[0]
-              except:
-                  return 'models/gemini-1.5-flash'
+              except: return 'models/gemini-1.5-flash'
 
           model_name = get_best_model()
           print(f'--- NUTZE MODELL: {model_name} ---')
@@ -125,7 +127,7 @@ jobs:
           prompt_text = f'''
           You are a Minecraft Bedrock Addon Expert (1.21+).
           
-          --- KNOWLEDGE BASE ---
+          --- KNOWLEDGE BASE (Filtered for Scripting) ---
           {docs_content}
           
           --- RULES ---
@@ -154,7 +156,6 @@ jobs:
               try:
                   data = json.loads(text)
               except:
-                  # Fallback falls Markdown-Reste da sind
                   start = text.find('{')
                   end = text.rfind('}') + 1
                   data = json.loads(text[start:end])
@@ -162,9 +163,7 @@ jobs:
               for path, content in data.items():
                   directory = os.path.dirname(path)
                   if directory: os.makedirs(directory, exist_ok=True)
-                  
                   write_content = json.dumps(content, indent=4) if isinstance(content, (dict, list)) else str(content)
-                  
                   with open(path, 'w', encoding='utf-8') as f: f.write(write_content)
                   print(f'Geschrieben: {path}')
 
