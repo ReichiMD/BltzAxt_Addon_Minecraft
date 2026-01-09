@@ -1,0 +1,32 @@
+--- REFERENCE EXAMPLES (GOLD STANDARD) ---
+Use these snippets as templates to avoid syntax errors.
+
+1. ITEM DEFINITION (1.21.0+):
+{
+  "format_version": "1.21.10",
+  "minecraft:item": {
+    "description": {
+      "identifier": "test:my_sword",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.sword" 
+      }
+    },
+    "components": {
+      "minecraft:display_name": { "value": "My Sword" },
+      "minecraft:icon": "my_sword_texture",
+      "minecraft:damage": 10
+    }
+  }
+}
+NOTE: "group" MUST start with "itemGroup.name." (e.g. itemGroup.name.sword, itemGroup.name.axe, itemGroup.name.helmet).
+
+2. COMMAND SYNTAX (Functions):
+When using the /give command, ALWAYS include the namespace.
+CORRECT: give @s test:my_sword
+WRONG: give @s my_sword
+
+3. STARTING LOOT (Simple Way):
+Do not use complex scripts (main.js) for simple starting loot. Use a .mcfunction file.
+Path: BP/functions/give_start_kit.mcfunction
+Content: give @s test:my_sword
