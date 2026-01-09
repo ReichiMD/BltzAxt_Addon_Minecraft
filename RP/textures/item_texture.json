@@ -2,8 +2,8 @@
     "resource_pack_name": "wiki",
     "texture_name": "atlas.items",
     "texture_data": {
-        "test:blitzaxt_icon": {
-            "textures": "textures/items/iron_axe"
+        "test:god_sword": {
+            "textures": "textures/items/diamond_sword"
         }
     }
 }

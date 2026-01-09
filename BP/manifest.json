@@ -2,36 +2,26 @@
     "format_version": 2,
     "header": {
         "name": "Blitzaxt Add-on",
-        "description": "Modifiziert die Eisenaxt, um Blitze zu beschw\u00f6ren, und bietet ein Start-Kit.",
-        "uuid": "362145b2-2a7b-40f4-a820-2c70a8233f20",
-        "version": [
-            1,
-            0,
-            3
-        ],
+        "description": "Ein \u00dcbungs-Add-on f\u00fcr das One-Hit-Schwert.",
+        "uuid": "61d368e7-e60d-4a15-992a-3306915f0391",
+        "version": "1.0.0",
         "min_engine_version": [
             1,
             21,
-            114
+            0
         ]
     },
     "modules": [
         {
-            "type": "script",
-            "language": "javascript",
-            "entry": "scripts/main.js",
-            "uuid": "3409831a-6d11-4f2b-8a21-12c8a77f0d4b",
-            "version": [
-                1,
-                0,
-                3
-            ]
+            "uuid": "7a3e7b2f-2d1c-4b5f-8c0d-6e9f1a2b3c4d",
+            "version": "1.0.0",
+            "type": "data"
         }
     ],
     "dependencies": [
         {
-            "module_name": "@minecraft/server",
-            "version": "2.3.0"
+            "uuid": "e2d097c5-5a7a-42c2-9e9d-97a66b9333a4",
+            "version": "1.0.0"
         }
     ]
 }

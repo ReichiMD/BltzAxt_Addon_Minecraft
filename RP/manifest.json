@@ -1,0 +1,21 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Blitzaxt Ressourcen",
+        "description": "Ressourcen f\u00fcr das One-Hit-Schwert.",
+        "uuid": "e2d097c5-5a7a-42c2-9e9d-97a66b9333a4",
+        "version": "1.0.0",
+        "min_engine_version": [
+            1,
+            21,
+            0
+        ]
+    },
+    "modules": [
+        {
+            "uuid": "9f1e0d7c-3b5a-4e2f-8d6b-7c5a4b3d2e1f",
+            "version": "1.0.0",
+            "type": "resources"
+        }
+    ]
+}

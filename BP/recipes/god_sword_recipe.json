@@ -1,0 +1,27 @@
+{
+    "format_version": "1.21.0",
+    "minecraft:recipe_shaped": {
+        "description": {
+            "identifier": "test:god_sword_recipe"
+        },
+        "tags": [
+            "crafting_table"
+        ],
+        "pattern": [
+            "D",
+            "D",
+            "S"
+        ],
+        "key": {
+            "D": {
+                "item": "minecraft:dirt"
+            },
+            "S": {
+                "item": "minecraft:stick"
+            }
+        },
+        "result": {
+            "item": "test:god_sword"
+        }
+    }
+}
