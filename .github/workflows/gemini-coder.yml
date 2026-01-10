@@ -25,12 +25,9 @@ jobs:
       - name: Install Dependencies
         run: pip install requests
 
-      - name: Run Generator (Smart Filter + Self-Healing)
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
+      - name: Create Builder Script
         run: |
-          python -c "
+          cat << 'EOF' > builder.py
           import os
           import json
           import requests
@@ -38,12 +35,17 @@ jobs:
           import zipfile
           import shutil
           import re
+          import sys
 
-          API_KEY = os.environ['GEMINI_API_KEY']
-          BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
-          USER_REQUEST = os.environ['ISSUE_BODY']
+          # SAFE ENV FETCHING
+          API_KEY = os.environ.get('GEMINI_API_KEY')
+          if not API_KEY:
+              print("❌ ERROR: API Key missing!")
+              sys.exit(1)
+              
+          BASE_URL = '[https://generativelanguage.googleapis.com/v1beta](https://generativelanguage.googleapis.com/v1beta)'
+          USER_REQUEST = os.environ.get('ISSUE_BODY', '')
 
-          # --- HILFSFUNKTION: API CALL ---
           def call_gemini(prompt, model='models/gemini-1.5-flash'):
               url = f'{BASE_URL}/{model}:generateContent?key={API_KEY}'
               payload = {'contents': [{'parts': [{'text': prompt}]}]}
@@ -51,11 +53,13 @@ jobs:
                   response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
                   if response.status_code != 200: return None
                   text = response.json()['candidates'][0]['content']['parts'][0]['text']
-                  # Clean JSON Code Blocks
+                  # Clean Markdown (Safe Regex)
                   text = re.sub(r'^```json\s*', '', text, flags=re.MULTILINE)
                   text = re.sub(r'^```\s*', '', text, flags=re.MULTILINE)
                   return text.strip()
-              except: return None
+              except Exception as e:
+                  print(f"API Error: {e}")
+                  return None
 
           # --- 1. RESET LOGIK ---
           if 'RESET PROJECT' in USER_REQUEST:
@@ -72,14 +76,15 @@ jobs:
                               manifest_content += f'\n--- EXISTING ({m_path}) ---\n' + f.read()
                       except: pass
 
-          # --- 2. SMART DOKUMENTATION (FILTER) ---
+          # --- 2. DOCS FILTER ---
           try:
               with open('README.md', 'r', encoding='utf-8') as f: readme_content = f.read()
           except: readme_content = 'No rules found.'
 
           docs_content = ''
           doc_files = glob.glob('docs/**/*.zip', recursive=True)
-          KEYWORDS = ['script', 'server', 'event', 'world', 'system', 'component', 'recipe', 'item'] 
+          # KEYWORDS fuer Filter
+          KEYWORDS = ['script', 'server', 'event', 'world', 'system', 'component', 'recipe', 'item', 'group'] 
 
           for file_path in doc_files:
               try:
@@ -96,13 +101,12 @@ jobs:
                                   except: pass
               except: pass
           
-          # Lokale txt Dateien auch lesen
           for txt_path in glob.glob('docs/**/*.txt', recursive=True):
                with open(txt_path, 'r', encoding='utf-8') as f: docs_content += f.read() + '\n'
 
-          # --- 3. HAUPT-GENERIERUNG ---
+          # --- 3. GENERATION ---
           print('--- STARTE GENERIERUNG ---')
-          prompt = f'''
+          prompt = f"""
           You are a Minecraft Bedrock Addon Expert (1.21+).
           CONTEXT:
           {docs_content[:150000]} 
@@ -113,57 +117,62 @@ jobs:
           
           TASK: {USER_REQUEST}
           
-          OUTPUT: Valid JSON ONLY: {{\"path/file.json\": \"content\"}}
+          OUTPUT: Valid JSON ONLY: {{"path/file.json": "content"}}
           STRICT: No markdown, no explanations.
-          '''
+          """
           
           json_response = call_gemini(prompt)
           
           if not json_response:
-              print('FEHLER: Keine Antwort von API.')
-              exit(1)
+              print('❌ FEHLER: Keine Antwort von API.')
+              sys.exit(1)
 
           try:
               data = json.loads(json_response)
           except:
-              # Fallback parsing
               s = json_response.find('{')
               e = json_response.rfind('}') + 1
-              data = json.loads(json_response[s:e])
+              try:
+                  data = json.loads(json_response[s:e])
+              except:
+                  print("❌ JSON Parsing failed heavily.")
+                  sys.exit(1)
 
-          # --- 4. VALIDIERUNG & SELBSTHEILUNG (REPARATUR) ---
+          # --- 4. SELF-HEALING ---
           print('--- PRÜFE & SCHREIBE DATEIEN ---')
           for path, content in data.items():
               directory = os.path.dirname(path)
               if directory: os.makedirs(directory, exist_ok=True)
               
-              # Content muss String sein
               str_content = json.dumps(content, indent=4) if isinstance(content, (dict, list)) else str(content)
               
-              # VALIDIERUNG
               if path.endswith('.json'):
                   try:
-                      json.loads(str_content) # Check Syntax
+                      json.loads(str_content)
                   except Exception as e:
-                      print(f'⚠️ FEHLER in {path}: {e}. Versuche Reparatur...')
-                      # REPARATUR VERSUCH
-                      fix_prompt = f'Fix this invalid JSON for Minecraft Bedrock ({path}). Error: {e}\n\nInvalid JSON:\n{str_content}\n\nReturn ONLY the fixed JSON string.'
-                      fixed_content = call_gemini(fix_prompt)
-                      if fixed_content:
+                      print(f'⚠️ Invalid JSON in {path}: {e}. Fixing...')
+                      fix_prompt = f'Fix this invalid JSON ({path}). Error: {e}\n\nInvalid Content:\n{str_content}\n\nReturn ONLY valid JSON string.'
+                      fixed = call_gemini(fix_prompt)
+                      if fixed:
                           try:
-                              json.loads(fixed_content) # Check erneut
-                              str_content = fixed_content
-                              print(f'✅ {path} erfolgreich repariert!')
+                              json.loads(fixed)
+                              str_content = fixed
+                              print(f'✅ {path} REPARIERT!')
                           except:
-                              print(f'❌ {path} konnte nicht repariert werden. Überspringe.')
+                              print(f'❌ Reparatur fehlgeschlagen für {path}.')
                               continue
 
               with open(path, 'w', encoding='utf-8') as f: f.write(str_content)
               print(f'Geschrieben: {path}')
+          EOF
 
-          "
+      - name: Run Builder Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python builder.py
 
-      - name: Commit changes (Code)
+      - name: Commit changes
         run: |
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
@@ -183,7 +192,6 @@ jobs:
           addon_name = 'Addon'
           addon_version = '0.0.1'
 
-          # Versuche Namen aus manifest zu lesen
           if os.path.exists('BP/manifest.json'):
               try:
                   with open('BP/manifest.json') as f:
@@ -196,19 +204,14 @@ jobs:
           filename = f'{addon_name}_v{addon_version}.mcaddon'
           print(f'Erstelle Paket: {filename}')
 
-          # Erstelle ZIP
           with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as z:
               for root, dirs, files in os.walk('.'):
-                  # Ignoriere versteckte Ordner und Docs
                   if '.git' in root or 'docs' in root: continue
-                  
                   for file in files:
-                      if file == filename: continue # Sich selbst nicht packen
-                      # Packe nur BP und RP Ordner und manifest
+                      if file == filename: continue
                       if root.startswith('./BP') or root.startswith('./RP') or file == 'manifest.json' or file == 'pack_icon.png':
                            z.write(os.path.join(root, file))
 
-          # Output für GitHub
           with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
               fh.write(f'filename={filename}\n')
           "
