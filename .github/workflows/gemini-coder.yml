@@ -1,4 +1,4 @@
-name: Gemini Addon Generator
+name: Gemini Addon Generator (Factory Edition)
 
 on:
   issues:
@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   build-addon:
@@ -21,10 +22,10 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Requests
+      - name: Install Dependencies
         run: pip install requests
 
-      - name: Run Generator (Smart Filter Edition)
+      - name: Run Generator (Smart Filter + Self-Healing)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -36,10 +37,25 @@ jobs:
           import glob
           import zipfile
           import shutil
+          import re
 
           API_KEY = os.environ['GEMINI_API_KEY']
           BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
           USER_REQUEST = os.environ['ISSUE_BODY']
+
+          # --- HILFSFUNKTION: API CALL ---
+          def call_gemini(prompt, model='models/gemini-1.5-flash'):
+              url = f'{BASE_URL}/{model}:generateContent?key={API_KEY}'
+              payload = {'contents': [{'parts': [{'text': prompt}]}]}
+              try:
+                  response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
+                  if response.status_code != 200: return None
+                  text = response.json()['candidates'][0]['content']['parts'][0]['text']
+                  # Clean JSON Code Blocks
+                  text = re.sub(r'^```json\s*', '', text, flags=re.MULTILINE)
+                  text = re.sub(r'^```\s*', '', text, flags=re.MULTILINE)
+                  return text.strip()
+              except: return None
 
           # --- 1. RESET LOGIK ---
           if 'RESET PROJECT' in USER_REQUEST:
@@ -53,130 +69,153 @@ jobs:
                   if os.path.exists(m_path):
                       try:
                           with open(m_path, 'r', encoding='utf-8') as f:
-                              manifest_content += f'\n--- EXISTING FILE ({m_path}) ---\n'
-                              manifest_content += f.read() + '\n'
+                              manifest_content += f'\n--- EXISTING ({m_path}) ---\n' + f.read()
                       except: pass
 
-          # --- 2. DOKUMENTATION (MIT SMART FILTER) ---
+          # --- 2. SMART DOKUMENTATION (FILTER) ---
           try:
               with open('README.md', 'r', encoding='utf-8') as f: readme_content = f.read()
           except: readme_content = 'No rules found.'
 
           docs_content = ''
-          doc_files = glob.glob('docs/**/*.md', recursive=True) + \
-                      glob.glob('docs/**/*.txt', recursive=True) + \
-                      glob.glob('docs/**/*.zip', recursive=True)
-          
-          # Wörter, die wir für dieses Projekt brauchen
-          # Wir filtern die Doku, damit wir unter 250k Token bleiben
-          KEYWORDS = ['script', 'server', 'event', 'world', 'system', 'component'] 
+          doc_files = glob.glob('docs/**/*.zip', recursive=True)
+          KEYWORDS = ['script', 'server', 'event', 'world', 'system', 'component', 'recipe', 'item'] 
 
-          if doc_files:
-              print(f'--- Verarbeite Doku-Quellen ---')
-              for file_path in doc_files:
-                  try:
-                      # ZIP-DATEIEN (Hier sitzt der Filter!)
-                      if file_path.endswith('.zip'):
-                          print(f'Durchsuche ZIP: {file_path} nach Scripting-Infos...')
-                          with zipfile.ZipFile(file_path, 'r') as z:
-                              for z_filename in z.namelist():
-                                  if z_filename.endswith('.md') or z_filename.endswith('.txt'):
-                                      # TRICK: Nur lesen, wenn es ums Scripting geht!
-                                      is_relevant = any(k in z_filename.lower() for k in KEYWORDS)
-                                      
-                                      # Die best_practices Datei nehmen wir IMMER mit
-                                      if 'best_practices' in z_filename.lower(): is_relevant = True
-
-                                      if is_relevant:
-                                          try:
-                                              with z.open(z_filename) as zf:
-                                                  content = zf.read().decode('utf-8', errors='ignore')
-                                                  # Sicherheits-Limit: Keine riesigen Einzeldateien > 20kb
-                                                  if len(content) < 20000:
-                                                      docs_content += f'\n--- DOCS (ZIP): {z_filename} ---\n' + content
-                                          except: pass
-                      
-                      # NORMALE DATEIEN (best_practices.txt etc.)
-                      else:
-                          with open(file_path, 'r', encoding='utf-8') as f:
-                              docs_content += f'\n--- DOCS: {os.path.basename(file_path)} ---\n' + f.read()
-                  except: pass
-          
-          print(f'Doku-Länge (Zeichen): {len(docs_content)}')
-
-          # --- 3. MODELL-SUCHE ---
-          def get_best_model():
+          for file_path in doc_files:
               try:
-                  url = f'{BASE_URL}/models?key={API_KEY}'
-                  response = requests.get(url)
-                  if response.status_code != 200: return 'models/gemini-1.5-flash'
-                  data = response.json()
-                  candidates = [m['name'] for m in data.get('models', []) if 'generateContent' in m.get('supportedGenerationMethods', [])]
-                  if not candidates: return 'models/gemini-1.5-flash'
-                  # Priorisiere Flash (schnell & günstig)
-                  for c in candidates:
-                      if 'flash' in c: return c
-                  return candidates[0]
-              except: return 'models/gemini-1.5-flash'
+                  with zipfile.ZipFile(file_path, 'r') as z:
+                      for z_filename in z.namelist():
+                          if z_filename.endswith('.md') or z_filename.endswith('.txt'):
+                              is_relevant = any(k in z_filename.lower() for k in KEYWORDS)
+                              if 'best_practices' in z_filename.lower(): is_relevant = True
+                              if is_relevant:
+                                  try:
+                                      with z.open(z_filename) as zf:
+                                          c = zf.read().decode('utf-8', errors='ignore')
+                                          if len(c) < 25000: docs_content += f'\n--- DOCS: {z_filename} ---\n' + c
+                                  except: pass
+              except: pass
+          
+          # Lokale txt Dateien auch lesen
+          for txt_path in glob.glob('docs/**/*.txt', recursive=True):
+               with open(txt_path, 'r', encoding='utf-8') as f: docs_content += f.read() + '\n'
 
-          model_name = get_best_model()
-          print(f'--- NUTZE MODELL: {model_name} ---')
-          
-          URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
-          
-          prompt_text = f'''
+          # --- 3. HAUPT-GENERIERUNG ---
+          print('--- STARTE GENERIERUNG ---')
+          prompt = f'''
           You are a Minecraft Bedrock Addon Expert (1.21+).
-          
-          --- KNOWLEDGE BASE (Filtered for Scripting) ---
-          {docs_content}
-          
+          CONTEXT:
+          {docs_content[:150000]} 
           --- RULES ---
           {readme_content}
-          
-          --- EXISTING STATE ---
+          --- CURRENT STATE ---
           {manifest_content}
           
-          TECHNICAL CONSTRAINTS:
-          1. Output ONLY valid JSON: {{\"path/file.json\": \"content\"}}
-          2. Ensure manifest.json is included.
-          3. STRICTLY follow folder structure (BP vs RP).
+          TASK: {USER_REQUEST}
+          
+          OUTPUT: Valid JSON ONLY: {{\"path/file.json\": \"content\"}}
+          STRICT: No markdown, no explanations.
           '''
           
-          payload = {'contents': [{'parts': [{'text': prompt_text + '\nUSER REQUEST: ' + USER_REQUEST}]}]}
+          json_response = call_gemini(prompt)
+          
+          if not json_response:
+              print('FEHLER: Keine Antwort von API.')
+              exit(1)
 
           try:
-              response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
-              if response.status_code != 200:
-                  print('API ERROR:', response.text)
-                  exit(1)
-              
-              text = response.json()['candidates'][0]['content']['parts'][0]['text']
-              text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
-              
-              try:
-                  data = json.loads(text)
-              except:
-                  start = text.find('{')
-                  end = text.rfind('}') + 1
-                  data = json.loads(text[start:end])
-              
-              for path, content in data.items():
-                  directory = os.path.dirname(path)
-                  if directory: os.makedirs(directory, exist_ok=True)
-                  write_content = json.dumps(content, indent=4) if isinstance(content, (dict, list)) else str(content)
-                  with open(path, 'w', encoding='utf-8') as f: f.write(write_content)
-                  print(f'Geschrieben: {path}')
+              data = json.loads(json_response)
+          except:
+              # Fallback parsing
+              s = json_response.find('{')
+              e = json_response.rfind('}') + 1
+              data = json.loads(json_response[s:e])
 
-          except Exception as e:
-              print(f'FEHLER: {e}')
-              exit(1)
+          # --- 4. VALIDIERUNG & SELBSTHEILUNG (REPARATUR) ---
+          print('--- PRÜFE & SCHREIBE DATEIEN ---')
+          for path, content in data.items():
+              directory = os.path.dirname(path)
+              if directory: os.makedirs(directory, exist_ok=True)
+              
+              # Content muss String sein
+              str_content = json.dumps(content, indent=4) if isinstance(content, (dict, list)) else str(content)
+              
+              # VALIDIERUNG
+              if path.endswith('.json'):
+                  try:
+                      json.loads(str_content) # Check Syntax
+                  except Exception as e:
+                      print(f'⚠️ FEHLER in {path}: {e}. Versuche Reparatur...')
+                      # REPARATUR VERSUCH
+                      fix_prompt = f'Fix this invalid JSON for Minecraft Bedrock ({path}). Error: {e}\n\nInvalid JSON:\n{str_content}\n\nReturn ONLY the fixed JSON string.'
+                      fixed_content = call_gemini(fix_prompt)
+                      if fixed_content:
+                          try:
+                              json.loads(fixed_content) # Check erneut
+                              str_content = fixed_content
+                              print(f'✅ {path} erfolgreich repariert!')
+                          except:
+                              print(f'❌ {path} konnte nicht repariert werden. Überspringe.')
+                              continue
+
+              with open(path, 'w', encoding='utf-8') as f: f.write(str_content)
+              print(f'Geschrieben: {path}')
+
           "
 
-      - name: Commit changes
+      - name: Commit changes (Code)
         run: |
           git config --global user.name "Gemini Bot"
           git config --global user.email "bot@noreply.github.com"
           git add .
           git commit -m "Gemini generated addon files" || echo "No changes"
           git push
+
+      - name: The Packer (Create .mcaddon)
+        id: packer
+        run: |
+          python -c "
+          import os
+          import json
+          import zipfile
+          import shutil
+
+          addon_name = 'Addon'
+          addon_version = '0.0.1'
+
+          # Versuche Namen aus manifest zu lesen
+          if os.path.exists('BP/manifest.json'):
+              try:
+                  with open('BP/manifest.json') as f:
+                      m = json.load(f)
+                      addon_name = m['header']['name'].replace(' ', '_')
+                      v = m['header']['version']
+                      addon_version = f'{v[0]}.{v[1]}.{v[2]}'
+              except: pass
+
+          filename = f'{addon_name}_v{addon_version}.mcaddon'
+          print(f'Erstelle Paket: {filename}')
+
+          # Erstelle ZIP
+          with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as z:
+              for root, dirs, files in os.walk('.'):
+                  # Ignoriere versteckte Ordner und Docs
+                  if '.git' in root or 'docs' in root: continue
+                  
+                  for file in files:
+                      if file == filename: continue # Sich selbst nicht packen
+                      # Packe nur BP und RP Ordner und manifest
+                      if root.startswith('./BP') or root.startswith('./RP') or file == 'manifest.json' or file == 'pack_icon.png':
+                           z.write(os.path.join(root, file))
+
+          # Output für GitHub
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              fh.write(f'filename={filename}\n')
+          "
+      
+      - name: Upload Addon Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minecraft-Addon-Package
+          path: "*.mcaddon"
           
