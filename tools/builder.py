@@ -18,80 +18,83 @@ def load_rules():
             return f.read()
     return "Regeln nicht gefunden."
 
-def clean_up_old_files():
+def create_dummy_texture(texture_name):
     """
-    Löscht alte JSON-Dateien in Items/Recipes Ordnern, um Duplikate zu verhindern.
-    Löscht NICHT die Manifeste oder Ordner-Struktur.
+    Erstellt eine einfache 16x16 PNG Datei, damit Items nicht lila-schwarz sind.
+    Das ist ein Platzhalter, bis du echte Bilder hochlädst.
     """
-    print("🧹 CLEANUP: Entferne alte Dateien um Konflikte zu vermeiden...")
+    texture_path = os.path.join(RP_PATH, "textures", "items", f"{texture_name}.png")
+    os.makedirs(os.path.dirname(texture_path), exist_ok=True)
     
-    # Liste der Ordner, die bereinigt werden sollen (Inhalt wird gelöscht)
-    folders_to_clean = [
-        os.path.join(BP_PATH, "items"),
-        os.path.join(BP_PATH, "recipes"),
-        # RP Textures löschen wir NICHT komplett, da wir die Struktur brauchen,
-        # aber wir könnten item_texture.json resetten, wenn wir ganz sauber sein wollen.
-        # Für jetzt lassen wir RP sicherheitshalber stehen, da Bilder schwerer zu ersetzen sind als JSON.
-    ]
+    if not os.path.exists(texture_path):
+        # Wir erstellen ein extrem simples PNG (1x1 Pixel, schwarz) per Hex-Code
+        # Das spart uns komplexe Bild-Bibliotheken.
+        # Minimaler PNG Header + 1 schwarzer Pixel
+        minimal_png = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
+            b'\x00\x00\x00\rIDATx\x9cc\x60\x60\x60\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        with open(texture_path, 'wb') as f:
+            f.write(minimal_png)
+        print(f"🎨 Platzhalter-Textur erstellt: {texture_path}")
 
-    for folder in folders_to_clean:
+def update_language_file(item_id, display_name):
+    """
+    Schreibt den Namen in die en_US.lang Datei, damit 'item.test:...' verschwindet.
+    """
+    lang_path = os.path.join(RP_PATH, "texts", "en_US.lang")
+    os.makedirs(os.path.dirname(lang_path), exist_ok=True)
+    
+    # Format: item.test:obsidian_sword.name=Obsidian Schwert
+    entry = f"item.{item_id}.name={display_name}\n"
+    
+    # Prüfen ob schon vorhanden
+    content = ""
+    if os.path.exists(lang_path):
+        with open(lang_path, 'r') as f:
+            content = f.read()
+            
+    if entry.strip() not in content:
+        with open(lang_path, 'a') as f:
+            f.write(entry)
+        print(f"📝 Name eingetragen: {display_name}")
+
+def clean_up_old_files():
+    print("🧹 CLEANUP: Entferne alte JSONs...")
+    folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
+    for folder in folders:
         if os.path.exists(folder):
-            for filename in os.listdir(folder):
-                file_path = os.path.join(folder, filename)
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path) # Datei löschen
-                        print(f"   - Gelöscht: {filename}")
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path) # Unterordner löschen
-                except Exception as e:
-                    print(f"⚠️ Konnte {file_path} nicht löschen: {e}")
-    print("✨ Arbeitsfläche ist sauber.")
+            shutil.rmtree(folder)
+            os.makedirs(folder)
 
 def get_smart_model_name(client):
     try:
         all_models = list(client.models.list())
-        flash_candidates = [m.name for m in all_models if "flash" in m.name.lower()]
-        
-        best_choice = None
-        if flash_candidates:
-            for cand in flash_candidates:
-                if "1.5" in cand and "flash" in cand:
-                    best_choice = cand
-                    break
-            if not best_choice: best_choice = flash_candidates[0]
-        else:
-            return "gemini-1.5-flash"
-
-        if best_choice.startswith("models/"):
-             best_choice = best_choice.replace("models/", "")
-        return best_choice
-    except:
-        return "gemini-1.5-flash"
+        flash = [m.name for m in all_models if "flash" in m.name.lower()]
+        best = flash[0] if flash else "gemini-1.5-flash"
+        return best.replace("models/", "") if best.startswith("models/") else best
+    except: return "gemini-1.5-flash"
 
 def manage_manifests():
-    """Verwaltet Manifeste und behält UUIDs bei."""
     print("🔧 CHECK: Synchronisiere Manifeste...")
     rp_path = os.path.join(RP_PATH, "manifest.json")
     bp_path = os.path.join(BP_PATH, "manifest.json")
     os.makedirs(RP_PATH, exist_ok=True)
     os.makedirs(BP_PATH, exist_ok=True)
 
-    # Defaults
     rp_uuid = str(uuid.uuid4())
     rp_version = [1, 0, 0]
     
-    # RP lesen
     if os.path.exists(rp_path):
         try:
             with open(rp_path, 'r') as f:
-                data = json.load(f)
-                rp_uuid = data['header']['uuid']
-                rp_version = data['header']['version']
+                d = json.load(f)
+                rp_uuid = d['header']['uuid']
+                rp_version = d['header']['version']
                 rp_version[2] += 1
         except: pass
     
-    # RP schreiben
+    # RP Manifest
     rp_data = {
         "format_version": 2,
         "header": {
@@ -103,19 +106,18 @@ def manage_manifests():
         },
         "modules": [{"type": "resources", "uuid": str(uuid.uuid4()), "version": rp_version}]
     }
-    with open(rp_path, 'w') as f:
-        json.dump(rp_data, f, indent=4)
+    with open(rp_path, 'w') as f: json.dump(rp_data, f, indent=4)
 
-    # BP lesen
+    # BP Manifest
     bp_uuid = str(uuid.uuid4())
     if os.path.exists(bp_path):
         try:
             with open(bp_path, 'r') as f:
-                data = json.load(f)
-                bp_uuid = data['header']['uuid']
+                d = json.load(f)
+                bp_uuid = d['header']['uuid']
         except: pass
 
-    # BP schreiben (mit Dependency)
+    # BP Manifest (Dependency strikt auf RP Version setzen)
     bp_data = {
         "format_version": 2,
         "header": {
@@ -128,15 +130,13 @@ def manage_manifests():
         "modules": [{"type": "data", "uuid": str(uuid.uuid4()), "version": rp_version}],
         "dependencies": [{"uuid": rp_uuid, "version": rp_version}]
     }
-    with open(bp_path, 'w') as f:
-        json.dump(bp_data, f, indent=4)
+    with open(bp_path, 'w') as f: json.dump(bp_data, f, indent=4)
         
     return rp_version
 
 def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
-    
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
@@ -154,45 +154,42 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Clean & Stable)...")
-    if not API_KEY:
-        print("❌ FEHLER: GEMINI_API_KEY fehlt!")
-        exit(1)
-
-    # 1. ERST AUFRÄUMEN
-    clean_up_old_files()
-
-    issue_body = os.environ.get("ISSUE_BODY", "Test Item")
-    rules = load_rules()
+    print("🏭 Factory startet (Visual Polish)...")
+    if not API_KEY: exit(1)
     
+    clean_up_old_files()
+    
+    issue_body = os.environ.get("ISSUE_BODY", "Test Item")
     client = genai.Client(api_key=API_KEY)
-    model_name = get_smart_model_name(client)
-    print(f"🚀 Nutze Modell: {model_name}")
-
-    prompt_parts = [
-        "Du bist ein Minecraft Bedrock Add-On Experte (Version 1.21.0+).",
-        "REGELN:", rules,
-        "WICHTIGE SYNTAX REGELN:",
-        "1. 'minecraft:icon' ist ein STRING (z.B. 'obsidian_sword'), kein Objekt.",
-        "2. Events haben KEINE 'damage' Property.",
-        "3. IDs müssen Kleinbuchstaben sein (z.B. 'test:obsidian_sword').",
-        "",
-        "AUFGABE:", issue_body,
-        "Generiere JSON für BP und RP.",
-        "WICHTIG: Output NUR als JSON-Liste. Format:",
-        '[{"path": "BP/items/x.json", "content": {...}}, {"path": "RP/...", "content": {...}}]'
+    model = get_smart_model_name(client)
+    
+    # Prompt fordert auch den Display Namen an für die Lang-Datei
+    prompt = f"""
+    Du bist ein Minecraft Bedrock Experte.
+    AUFGABE: {issue_body}
+    REGELN: {load_rules()}
+    
+    Generiere JSON für BP und RP.
+    ZUSATZ: Gib mir für jedes Item auch den Namen der Textur-Datei (ohne .png) und den Display-Namen.
+    
+    OUTPUT FORMAT (JSON Liste):
+    [
+        {{
+            "path": "BP/items/xyz.json", 
+            "content": {{...}}, 
+            "texture_name": "xyz_icon",
+            "display_name": "Mein Item Name",
+            "item_id": "test:xyz" 
+        }},
+        {{ "path": "RP/...", "content": {{...}} }}
     ]
-    full_prompt = "\n".join(prompt_parts)
-
+    """
+    
     try:
-        response = client.models.generate_content(
-            model=model_name, 
-            contents=full_prompt
-        )
-        
+        response = client.models.generate_content(model=model, contents=prompt)
         text = response.text.replace("```json", "").replace("```", "").strip()
         start, end = text.find('['), text.rfind(']') + 1
-        if start != -1 and end != -1: text = text[start:end]
+        text = text[start:end]
         
         files = json.loads(text)
         
@@ -215,10 +212,18 @@ def main():
 
             with open(full_path, 'w') as f:
                 json.dump(content, f, indent=4)
-            print(f"✅ Datei: {path}")
+            
+            # ZUSATZ-FEATURES:
+            # 1. Dummy Textur erstellen
+            if "texture_name" in item:
+                create_dummy_texture(item["texture_name"])
+            
+            # 2. Lang File Update
+            if "display_name" in item and "item_id" in item:
+                update_language_file(item["item_id"], item["display_name"])
 
-        final_version = manage_manifests()
-        create_mcaddon("MeinAddon", final_version)
+        ver = manage_manifests()
+        create_mcaddon("MeinAddon", ver)
 
     except Exception as e:
         print(f"❌ ERROR: {e}")
@@ -226,4 +231,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+    
