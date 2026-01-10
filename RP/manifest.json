@@ -3,7 +3,7 @@
     "header": {
         "name": "Factory Addon RP",
         "description": "Visuals",
-        "uuid": "a2f7f9b0-1c3d-4e5f-6a7b-8c9d0e1f2a3b",
+        "uuid": "61d31c48-2b8e-4a6c-9a4f-56d1c1c7a6e1",
         "version": [
             1,
             0,
@@ -18,7 +18,7 @@
     "modules": [
         {
             "type": "resources",
-            "uuid": "8a46bb9a-1b80-4052-9623-1eb1ca82b827",
+            "uuid": "795bcca0-abad-44d2-9860-972abe5cfe68",
             "version": [
                 1,
                 0,
