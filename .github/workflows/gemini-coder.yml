@@ -1,182 +1,41 @@
-name: Gemini Addon Generator
+name: Add-On Factory Build
 
 on:
   issues:
     types: [opened, edited]
+  workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
-  build-addon:
-    if: contains(github.event.issue.title, 'Gemini')
+  build:
     runs-on: ubuntu-latest
+    if: contains(github.event.issue.title, 'Factory') || contains(github.event.issue.body, 'Factory')
+    
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9'
 
-      - name: Install Requests
-        run: pip install requests
+      - name: Install Dependencies
+        run: pip install google-generativeai
 
-      - name: Run Generator (Smart Filter Edition)
+      - name: Run Factory Builder
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python tools/builder.py
+
+      - name: Commit & Push Changes
         run: |
-          python -c "
-          import os
-          import json
-          import requests
-          import glob
-          import zipfile
-          import shutil
-
-          API_KEY = os.environ['GEMINI_API_KEY']
-          BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
-          USER_REQUEST = os.environ['ISSUE_BODY']
-
-          # --- 1. RESET LOGIK ---
-          if 'RESET PROJECT' in USER_REQUEST:
-              print('!!! RESET PROJECT AUSGEFÜHRT !!!')
-              if os.path.exists('BP'): shutil.rmtree('BP')
-              if os.path.exists('RP'): shutil.rmtree('RP')
-              manifest_content = ''
-          else:
-              manifest_content = ''
-              for m_path in ['BP/manifest.json', 'RP/manifest.json', 'manifest.json']:
-                  if os.path.exists(m_path):
-                      try:
-                          with open(m_path, 'r', encoding='utf-8') as f:
-                              manifest_content += f'\n--- EXISTING FILE ({m_path}) ---\n'
-                              manifest_content += f.read() + '\n'
-                      except: pass
-
-          # --- 2. DOKUMENTATION (MIT SMART FILTER) ---
-          try:
-              with open('README.md', 'r', encoding='utf-8') as f: readme_content = f.read()
-          except: readme_content = 'No rules found.'
-
-          docs_content = ''
-          doc_files = glob.glob('docs/**/*.md', recursive=True) + \
-                      glob.glob('docs/**/*.txt', recursive=True) + \
-                      glob.glob('docs/**/*.zip', recursive=True)
-          
-          # Wörter, die wir für dieses Projekt brauchen
-          # Wir filtern die Doku, damit wir unter 250k Token bleiben
-          KEYWORDS = ['script', 'server', 'event', 'world', 'system', 'component'] 
-
-          if doc_files:
-              print(f'--- Verarbeite Doku-Quellen ---')
-              for file_path in doc_files:
-                  try:
-                      # ZIP-DATEIEN (Hier sitzt der Filter!)
-                      if file_path.endswith('.zip'):
-                          print(f'Durchsuche ZIP: {file_path} nach Scripting-Infos...')
-                          with zipfile.ZipFile(file_path, 'r') as z:
-                              for z_filename in z.namelist():
-                                  if z_filename.endswith('.md') or z_filename.endswith('.txt'):
-                                      # TRICK: Nur lesen, wenn es ums Scripting geht!
-                                      is_relevant = any(k in z_filename.lower() for k in KEYWORDS)
-                                      
-                                      # Die best_practices Datei nehmen wir IMMER mit
-                                      if 'best_practices' in z_filename.lower(): is_relevant = True
-
-                                      if is_relevant:
-                                          try:
-                                              with z.open(z_filename) as zf:
-                                                  content = zf.read().decode('utf-8', errors='ignore')
-                                                  # Sicherheits-Limit: Keine riesigen Einzeldateien > 20kb
-                                                  if len(content) < 20000:
-                                                      docs_content += f'\n--- DOCS (ZIP): {z_filename} ---\n' + content
-                                          except: pass
-                      
-                      # NORMALE DATEIEN (best_practices.txt etc.)
-                      else:
-                          with open(file_path, 'r', encoding='utf-8') as f:
-                              docs_content += f'\n--- DOCS: {os.path.basename(file_path)} ---\n' + f.read()
-                  except: pass
-          
-          print(f'Doku-Länge (Zeichen): {len(docs_content)}')
-
-          # --- 3. MODELL-SUCHE ---
-          def get_best_model():
-              try:
-                  url = f'{BASE_URL}/models?key={API_KEY}'
-                  response = requests.get(url)
-                  if response.status_code != 200: return 'models/gemini-1.5-flash'
-                  data = response.json()
-                  candidates = [m['name'] for m in data.get('models', []) if 'generateContent' in m.get('supportedGenerationMethods', [])]
-                  if not candidates: return 'models/gemini-1.5-flash'
-                  # Priorisiere Flash (schnell & günstig)
-                  for c in candidates:
-                      if 'flash' in c: return c
-                  return candidates[0]
-              except: return 'models/gemini-1.5-flash'
-
-          model_name = get_best_model()
-          print(f'--- NUTZE MODELL: {model_name} ---')
-          
-          URL = f'{BASE_URL}/{model_name}:generateContent?key={API_KEY}'
-          
-          prompt_text = f'''
-          You are a Minecraft Bedrock Addon Expert (1.21+).
-          
-          --- KNOWLEDGE BASE (Filtered for Scripting) ---
-          {docs_content}
-          
-          --- RULES ---
-          {readme_content}
-          
-          --- EXISTING STATE ---
-          {manifest_content}
-          
-          TECHNICAL CONSTRAINTS:
-          1. Output ONLY valid JSON: {{\"path/file.json\": \"content\"}}
-          2. Ensure manifest.json is included.
-          3. STRICTLY follow folder structure (BP vs RP).
-          '''
-          
-          payload = {'contents': [{'parts': [{'text': prompt_text + '\nUSER REQUEST: ' + USER_REQUEST}]}]}
-
-          try:
-              response = requests.post(URL, json=payload, headers={'Content-Type': 'application/json'})
-              if response.status_code != 200:
-                  print('API ERROR:', response.text)
-                  exit(1)
-              
-              text = response.json()['candidates'][0]['content']['parts'][0]['text']
-              text = text.replace('\`\`\`json', '').replace('\`\`\`', '').strip()
-              
-              try:
-                  data = json.loads(text)
-              except:
-                  start = text.find('{')
-                  end = text.rfind('}') + 1
-                  data = json.loads(text[start:end])
-              
-              for path, content in data.items():
-                  directory = os.path.dirname(path)
-                  if directory: os.makedirs(directory, exist_ok=True)
-                  write_content = json.dumps(content, indent=4) if isinstance(content, (dict, list)) else str(content)
-                  with open(path, 'w', encoding='utf-8') as f: f.write(write_content)
-                  print(f'Geschrieben: {path}')
-
-          except Exception as e:
-              print(f'FEHLER: {e}')
-              exit(1)
-          "
-
-      - name: Commit changes
-        run: |
-          git config --global user.name "Gemini Bot"
-          git config --global user.email "bot@noreply.github.com"
+          git config --global user.name "Factory Bot"
+          git config --global user.email "bot@factory.local"
           git add .
-          git commit -m "Gemini generated addon files" || echo "No changes"
+          git commit -m "🏭 Factory Build: ${{ github.event.issue.title }}" || echo "Nichts zu committen"
           git push
           
