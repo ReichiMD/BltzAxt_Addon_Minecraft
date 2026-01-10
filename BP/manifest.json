@@ -1,9 +1,9 @@
 {
     "format_version": 2,
     "header": {
-        "name": "Obsidian Gear BP",
-        "description": "Behavior Pack for Obsidian Gear",
-        "uuid": "8f3b7c9e-1d5a-4e2f-8a0b-1c3d5e7f9a1b",
+        "name": "Obsidian Sword BP",
+        "description": "Behavior Pack f\u00fcr das Obsidian Schwert.",
+        "uuid": "39a9c6c5-9b2f-4c12-8d7b-4e0a1f0a2d42",
         "version": [
             1,
             0,
@@ -18,7 +18,7 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
+            "uuid": "9d7b4e0a-1f0a-4d42-8c12-39a9c6c59b2f",
             "version": [
                 1,
                 0,
@@ -28,7 +28,7 @@
     ],
     "dependencies": [
         {
-            "uuid": "7e6f5d4c-3b2a-1e0f-9d8c-7b6a5d4e3f2g",
+            "uuid": "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
             "version": [
                 1,
                 0,

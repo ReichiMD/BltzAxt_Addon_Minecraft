@@ -1,0 +1,27 @@
+{
+    "format_version": "1.12.0",
+    "minecraft:recipe_shaped": {
+        "description": {
+            "identifier": "test:obsidian_sword"
+        },
+        "tags": [
+            "crafting_table"
+        ],
+        "pattern": [
+            " O ",
+            " O ",
+            " S "
+        ],
+        "key": {
+            "O": {
+                "item": "minecraft:obsidian"
+            },
+            "S": {
+                "item": "minecraft:stick"
+            }
+        },
+        "result": {
+            "item": "test:obsidian_sword"
+        }
+    }
+}
