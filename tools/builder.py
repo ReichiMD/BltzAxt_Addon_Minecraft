@@ -19,12 +19,12 @@ def load_rules():
     return "Regeln nicht gefunden."
 
 def create_dummy_texture(texture_name):
-    """Erstellt ein 16x16 PNG (Schwarz/Pink Check), falls es fehlt."""
+    """Erstellt ein 16x16 PNG (Schwarz), falls es fehlt."""
     texture_path = os.path.join(RP_PATH, "textures", "items", f"{texture_name}.png")
     os.makedirs(os.path.dirname(texture_path), exist_ok=True)
     
     if not os.path.exists(texture_path):
-        # Einfaches PNG
+        # Minimaler PNG Header + 1 Pixel
         minimal_png = (
             b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
             b'\x00\x00\x00\rIDATx\x9cc\x60\x60\x60\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
@@ -72,30 +72,31 @@ def update_language_file(item_id, display_name):
 def extract_info_and_fix(file_path, content):
     """Analysiert und repariert Item-Definitionen."""
     try:
+        # Check ob es ein Item ist
         if "minecraft:item" in content:
-            # FIX: Zwinge Version auf 1.21.0, damit Komponenten wie 'digger' funktionieren
+            # FIX 1: Zwinge Version auf 1.21.0
             content["format_version"] = "1.21.0"
             
             comp = content["minecraft:item"].get("components", {})
             desc = content["minecraft:item"].get("description", {})
             item_id = desc.get("identifier", "")
             
-            # Icon Fix
+            # FIX 2: Textur automatisch erstellen
             icon = comp.get("minecraft:icon")
             if icon:
                 tex_name = icon if isinstance(icon, str) else icon.get("texture")
                 if tex_name: create_dummy_texture(tex_name)
 
-            # Name Fix
+            # FIX 3: Name automatisch eintragen
             display = comp.get("minecraft:display_name")
             if display:
                 name_val = display.get("value") if isinstance(display, dict) else display
                 if name_val: update_language_file(item_id, name_val)
                 
-            return content # Geänderten Content zurückgeben
+            return content
 
     except Exception as e:
-        print(f"⚠️ Fix fehlgeschlagen: {e}")
+        print(f"⚠️ Fix fehlgeschlagen für {file_path}: {e}")
     return content
 
 def clean_up_old_files():
@@ -189,7 +190,7 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Force Version 1.21.0)...")
+    print("🏭 Factory startet (Robust & Auto-Fix)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -203,13 +204,15 @@ def main():
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
     
-    🚨 WICHTIGE ANWEISUNGEN:
-    1. Setze "format_version" IMMER auf "1.21.0".
-    2. NIEMALS 'minecraft:weapon' benutzen (deprecated).
-    3. 'minecraft:icon' muss ein String sein.
-    4. 'minecraft:display_name' muss ein Objekt sein: {{ "value": "Name" }}.
+    🚨 WICHTIG:
+    1. Setze "format_version" auf "1.21.0".
+    2. NIEMALS 'minecraft:weapon'.
+    3. Output NUR als JSON-Liste.
     
-    Output NUR als JSON-Liste.
+    Format:
+    [
+        {{ "path": "BP/items/xyz.json", "content": {{...}} }}
+    ]
     """
     
     try:
@@ -221,6 +224,11 @@ def main():
         files = json.loads(text)
         
         for item in files:
+            # ROBUSNESS CHECK: Hat die KI das 'path' Feld vergessen?
+            if "path" not in item:
+                print("⚠️ Warnung: Ein Eintrag hat keinen Pfad. Überspringe...")
+                continue
+                
             path = item['path']
             if ".." in path: continue
             
@@ -229,11 +237,10 @@ def main():
             
             content = item['content']
             
-            # AUTOMATISCHER FIX & VERSION UPGRADE
-            # Hier überschreiben wir die Version hart auf 1.21.0
+            # Auto-Fix durchführen (Version update, Name extract)
             content = extract_info_and_fix(path, content)
             
-            # Merge Logic für Texture Defs
+            # Textur-Daten mergen
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
                     with open(full_path, 'r') as f:
