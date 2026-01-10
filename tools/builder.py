@@ -18,15 +18,13 @@ def load_rules():
     return "Regeln nicht gefunden."
 
 def get_smart_model_name(client):
-    """Sucht das passende Flash-Modell, um 404 Fehler zu vermeiden."""
-    print("🔎 DIAGNOSE: Scanne verfügbare Modelle...")
+    """Sucht das passende Flash-Modell."""
     try:
         all_models = list(client.models.list())
         flash_candidates = [m.name for m in all_models if "flash" in m.name.lower()]
         
         best_choice = None
         if flash_candidates:
-            # Bevorzuge Modelle mit '1.5' und 'flash'
             for cand in flash_candidates:
                 if "1.5" in cand and "flash" in cand:
                     best_choice = cand
@@ -41,118 +39,125 @@ def get_smart_model_name(client):
     except:
         return "gemini-1.5-flash"
 
-def ensure_manifests_exist():
+def manage_manifests(target_version=None):
     """
-    PRÜFT UND REPARIERT FEHLENDE MANIFESTE.
-    Dies ist der Fix für 'Unbekannter Paketname'.
+    Verwaltet Manifeste intelligent:
+    1. Behält UUIDs bei, wenn Dateien existieren (wichtig für Updates!).
+    2. Erstellt neue UUIDs nur beim ersten Mal.
+    3. Verlinkt BP korrekt mit RP (Dependency Fix).
+    4. Setzt Versionen hoch.
     """
-    print("🔧 CHECK: Prüfe Manifeste...")
+    print("🔧 CHECK: Synchronisiere Manifeste & Versionen...")
     
-    # UUIDs generieren (für Behavior und Resource Pack)
-    bp_uuid = str(uuid.uuid4())
+    # Pfade
+    rp_path = os.path.join(RP_PATH, "manifest.json")
+    bp_path = os.path.join(BP_PATH, "manifest.json")
+    
+    os.makedirs(RP_PATH, exist_ok=True)
+    os.makedirs(BP_PATH, exist_ok=True)
+
+    # --- 1. RESOURCE PACK (RP) ---
     rp_uuid = str(uuid.uuid4())
+    rp_version = [1, 0, 0]
     
-    # 1. Resource Pack Manifest (RP)
-    rp_manifest_path = os.path.join(RP_PATH, "manifest.json")
-    if not os.path.exists(rp_manifest_path):
-        print("⚠️ RP Manifest fehlt. Erstelle neu...")
-        os.makedirs(RP_PATH, exist_ok=True)
-        rp_data = {
-            "format_version": 2,
-            "header": {
-                "name": "Factory Addon RP",
-                "description": "Erstellt von der Add-On Factory",
-                "uuid": rp_uuid,
-                "version": [1, 0, 0],
-                "min_engine_version": [1, 21, 0]
-            },
-            "modules": [
-                {
-                    "type": "resources",
-                    "uuid": str(uuid.uuid4()),
-                    "version": [1, 0, 0]
-                }
-            ]
-        }
-        with open(rp_manifest_path, 'w') as f:
-            json.dump(rp_data, f, indent=4)
+    # Lese existierendes RP
+    if os.path.exists(rp_path):
+        try:
+            with open(rp_path, 'r') as f:
+                data = json.load(f)
+                rp_uuid = data['header']['uuid'] # UUID BEHALTEN!
+                rp_version = data['header']['version']
+                # Version erhöhen
+                rp_version[2] += 1
+        except: pass
+    
+    # Schreibe RP neu (saubere Struktur)
+    rp_data = {
+        "format_version": 2,
+        "header": {
+            "name": "Factory Addon RP",
+            "description": "Visuals (Auto-Generated)",
+            "uuid": rp_uuid,
+            "version": rp_version,
+            "min_engine_version": [1, 21, 0]
+        },
+        "modules": [
+            {
+                "type": "resources",
+                "uuid": str(uuid.uuid4()), # Modul UUID darf neu sein
+                "version": rp_version
+            }
+        ]
+    }
+    with open(rp_path, 'w') as f:
+        json.dump(rp_data, f, indent=4)
 
-    # Lese RP UUID aus (falls es schon existierte), damit BP darauf verweisen kann
-    with open(rp_manifest_path, 'r') as f:
-        rp_data = json.load(f)
-        actual_rp_uuid = rp_data['header']['uuid']
+    # --- 2. BEHAVIOR PACK (BP) ---
+    bp_uuid = str(uuid.uuid4())
+    bp_version = rp_version # Sync Version
+    
+    if os.path.exists(bp_path):
+        try:
+            with open(bp_path, 'r') as f:
+                data = json.load(f)
+                bp_uuid = data['header']['uuid'] # UUID BEHALTEN!
+        except: pass
 
-    # 2. Behavior Pack Manifest (BP)
-    bp_manifest_path = os.path.join(BP_PATH, "manifest.json")
-    if not os.path.exists(bp_manifest_path):
-        print("⚠️ BP Manifest fehlt. Erstelle neu...")
-        os.makedirs(BP_PATH, exist_ok=True)
-        bp_data = {
-            "format_version": 2,
-            "header": {
-                "name": "Factory Addon BP",
-                "description": "Logik für Factory Addon",
-                "uuid": bp_uuid,
-                "version": [1, 0, 0],
-                "min_engine_version": [1, 21, 0]
-            },
-            "modules": [
-                {
-                    "type": "data",
-                    "uuid": str(uuid.uuid4()),
-                    "version": [1, 0, 0]
-                }
-            ],
-            "dependencies": [
-                {
-                    "uuid": actual_rp_uuid,
-                    "version": [1, 0, 0]
-                }
-            ]
-        }
-        with open(bp_manifest_path, 'w') as f:
-            json.dump(bp_data, f, indent=4)
-            
-    print("✅ Manifeste sind bereit.")
-
-def bump_version(manifest_path):
-    if not os.path.exists(manifest_path): return [1, 0, 0]
-    try:
-        with open(manifest_path, 'r') as f:
-            data = json.load(f)
-        v = data['header']['version']
-        v[2] += 1
-        data['header']['version'] = v
-        if 'modules' in data:
-            for m in data['modules']: m['version'] = v
-        with open(manifest_path, 'w') as f:
-            json.dump(data, f, indent=4)
-        return v
-    except: return [1, 0, 0]
+    # BP muss RP kennen (Dependency)
+    bp_data = {
+        "format_version": 2,
+        "header": {
+            "name": "Factory Addon BP",
+            "description": "Logic (Auto-Generated)",
+            "uuid": bp_uuid,
+            "version": bp_version,
+            "min_engine_version": [1, 21, 0]
+        },
+        "modules": [
+            {
+                "type": "data",
+                "uuid": str(uuid.uuid4()),
+                "version": bp_version
+            }
+        ],
+        "dependencies": [
+            {
+                "uuid": rp_uuid, # WICHTIG: Link zur RP UUID
+                "version": rp_version
+            }
+        ]
+    }
+    with open(bp_path, 'w') as f:
+        json.dump(bp_data, f, indent=4)
+        
+    print(f"✅ Manifeste aktualisiert. Version: {rp_version}")
+    return rp_version
 
 def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
     
-    # Alte Datei löschen
+    # Alte Addons löschen
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
             except: pass
 
     with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # WICHTIG: Packe BP und RP Ordner
+        # Ordner BP und RP in das Root des Zips packen
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
+                folder_name = os.path.basename(folder) # "BP" oder "RP"
                 for root, _, files in os.walk(folder):
                     for file in files:
                         abs_path = os.path.join(root, file)
-                        rel_path = os.path.relpath(abs_path, REPO_ROOT)
+                        # Relativer Pfad im Zip: BP/manifest.json etc.
+                        rel_path = os.path.join(folder_name, os.path.relpath(abs_path, folder))
                         zf.write(abs_path, rel_path)
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Self-Healing Edition)...")
+    print("🏭 Factory startet (Stability Edition)...")
     if not API_KEY:
         print("❌ FEHLER: GEMINI_API_KEY fehlt!")
         exit(1)
@@ -160,14 +165,23 @@ def main():
     issue_body = os.environ.get("ISSUE_BODY", "Test Item")
     rules = load_rules()
     
-    # Client starten & Modell wählen
     client = genai.Client(api_key=API_KEY)
     model_name = get_smart_model_name(client)
     print(f"🚀 Nutze Modell: {model_name}")
 
+    # VERBESSERTER PROMPT (Gegen Syntax-Fehler)
     prompt_parts = [
-        "Du bist ein Minecraft Bedrock Add-On Experte.",
+        "Du bist ein Minecraft Bedrock Add-On Experte (Version 1.21.0+).",
         "REGELN:", rules,
+        "WICHTIGE SYNTAX REGELN (Vermeide diese Fehler):",
+        "1. 'minecraft:icon' in components muss ein String sein (Textur-Name), KEIN Objekt!",
+        "   RICHTIG: 'minecraft:icon': 'obsidian_sword'",
+        "   FALSCH: 'minecraft:icon': { 'texture': ... }",
+        "2. Events wie 'on_tool_damaged' dürfen KEINE Properties wie 'damage' direkt enthalten.",
+        "   Nutze Events um Commands auszuführen oder Molang, aber halte dich an die Schema-Doku.",
+        "3. Nutze 'minecraft:digger' nur mit korrekten Parametern.",
+        "4. Erfinde keine Felder in 'description' (kein 'category').",
+        "",
         "AUFGABE:", issue_body,
         "Generiere JSON für BP und RP.",
         "WICHTIG: Output NUR als JSON-Liste. Format:",
@@ -195,7 +209,7 @@ def main():
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             
             content = item['content']
-            # Merge Logic
+            # Merge Logic für Texturen
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
                     with open(full_path, 'r') as f:
@@ -209,12 +223,9 @@ def main():
                 json.dump(content, f, indent=4)
             print(f"✅ Datei: {path}")
 
-        # WICHTIG: Manifeste prüfen VOR dem Verpacken
-        ensure_manifests_exist()
-
-        ver = bump_version(os.path.join(BP_PATH, "manifest.json"))
-        bump_version(os.path.join(RP_PATH, "manifest.json"))
-        create_mcaddon("MeinAddon", ver)
+        # Manifest Update & Packaging
+        final_version = manage_manifests()
+        create_mcaddon("MeinAddon", final_version)
 
     except Exception as e:
         print(f"❌ ERROR: {e}")
@@ -222,4 +233,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+    
