@@ -8,12 +8,12 @@
             "crafting_table"
         ],
         "pattern": [
-            "O",
-            "O",
-            "S"
+            " X ",
+            " X ",
+            " S "
         ],
         "key": {
-            "O": {
+            "X": {
                 "item": "minecraft:obsidian"
             },
             "S": {

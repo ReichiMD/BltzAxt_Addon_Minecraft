@@ -7,35 +7,23 @@
         },
         "components": {
             "minecraft:display_name": {
-                "value": "Obsidian Sword"
+                "value": "item.test:obsidian_sword.name"
             },
             "minecraft:icon": "obsidian_sword",
             "minecraft:max_stack_size": 1,
             "minecraft:hand_equipped": true,
             "minecraft:durability": {
-                "max_durability": 2000
+                "max_durability": 2500
             },
-            "minecraft:attack_damage": {
-                "value": 10
-            },
-            "minecraft:mining_speed": {
-                "speed": 1.5,
-                "on_dig": {
-                    "event": "damage_item"
+            "minecraft:weapon": {
+                "attack_damage": 10,
+                "on_hit_entity": {
+                    "play_sound": "hit"
                 }
-            },
-            "minecraft:enchantable": {
-                "value": 10,
-                "slot": "sword"
             },
             "minecraft:creative_category": {
                 "group": "itemGroup.name.sword",
-                "category": "equipment"
-            },
-            "minecraft:repair_item": {
-                "items": [
-                    "minecraft:obsidian"
-                ]
+                "parent": "itemGroup.name.weapon"
             }
         }
     }
