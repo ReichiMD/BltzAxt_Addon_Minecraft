@@ -1,30 +1,3 @@
-name: Gemini Addon Generator (Factory Edition)
-
-on:
-  issues:
-    types: [opened, edited]
-
-permissions:
-  contents: write
-  pull-requests: write
-  actions: write
-
-jobs:
-  build-addon:
-    if: contains(github.event.issue.title, 'Gemini')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
-        run: pip install requests
-
       - name: Create Builder Script
         run: |
           cat << 'EOF' > builder.py
@@ -43,22 +16,29 @@ jobs:
               print("❌ ERROR: API Key missing!")
               sys.exit(1)
               
-          BASE_URL = '[https://generativelanguage.googleapis.com/v1beta](https://generativelanguage.googleapis.com/v1beta)'
+          # HIER WAR DER KOPIER-FEHLER. JETZT SAUBER:
+          BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
           USER_REQUEST = os.environ.get('ISSUE_BODY', '')
 
           def call_gemini(prompt, model='models/gemini-1.5-flash'):
-              url = f'{BASE_URL}/{model}:generateContent?key={API_KEY}'
+              # URL Zusammenbau
+              url = f"{BASE_URL}/{model}:generateContent?key={API_KEY}"
+              
               payload = {'contents': [{'parts': [{'text': prompt}]}]}
               try:
                   response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-                  if response.status_code != 200: return None
+                  if response.status_code != 200: 
+                      print(f"API Error Status: {response.status_code}")
+                      print(f"Response: {response.text}")
+                      return None
+                  
                   text = response.json()['candidates'][0]['content']['parts'][0]['text']
                   # Clean Markdown (Safe Regex)
                   text = re.sub(r'^```json\s*', '', text, flags=re.MULTILINE)
                   text = re.sub(r'^```\s*', '', text, flags=re.MULTILINE)
                   return text.strip()
               except Exception as e:
-                  print(f"API Error: {e}")
+                  print(f"API Exception: {e}")
                   return None
 
           # --- 1. RESET LOGIK ---
@@ -165,60 +145,4 @@ jobs:
               with open(path, 'w', encoding='utf-8') as f: f.write(str_content)
               print(f'Geschrieben: {path}')
           EOF
-
-      - name: Run Builder Script
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-        run: python builder.py
-
-      - name: Commit changes
-        run: |
-          git config --global user.name "Gemini Bot"
-          git config --global user.email "bot@noreply.github.com"
-          git add .
-          git commit -m "Gemini generated addon files" || echo "No changes"
-          git push
-
-      - name: The Packer (Create .mcaddon)
-        id: packer
-        run: |
-          python -c "
-          import os
-          import json
-          import zipfile
-          import shutil
-
-          addon_name = 'Addon'
-          addon_version = '0.0.1'
-
-          if os.path.exists('BP/manifest.json'):
-              try:
-                  with open('BP/manifest.json') as f:
-                      m = json.load(f)
-                      addon_name = m['header']['name'].replace(' ', '_')
-                      v = m['header']['version']
-                      addon_version = f'{v[0]}.{v[1]}.{v[2]}'
-              except: pass
-
-          filename = f'{addon_name}_v{addon_version}.mcaddon'
-          print(f'Erstelle Paket: {filename}')
-
-          with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as z:
-              for root, dirs, files in os.walk('.'):
-                  if '.git' in root or 'docs' in root: continue
-                  for file in files:
-                      if file == filename: continue
-                      if root.startswith('./BP') or root.startswith('./RP') or file == 'manifest.json' or file == 'pack_icon.png':
-                           z.write(os.path.join(root, file))
-
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-              fh.write(f'filename={filename}\n')
-          "
-      
-      - name: Upload Addon Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Minecraft-Addon-Package
-          path: "*.mcaddon"
           
