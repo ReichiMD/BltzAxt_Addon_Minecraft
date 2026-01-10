@@ -3,7 +3,7 @@
     "header": {
         "name": "Factory Addon BP",
         "description": "Logic",
-        "uuid": "1b1e9b27-5f12-4f3b-8c8e-5b2b2c1c7a6e",
+        "uuid": "9c4a8f3b-5e3d-4c1d-8a2b-1f9e7c6d5a0b",
         "version": [
             1,
             0,
@@ -18,7 +18,7 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "401dd444-6932-4a74-8f02-762d77e9be6f",
+            "uuid": "1f6e7340-2b75-43f6-9f04-cdc7886f4b39",
             "version": [
                 1,
                 0,
@@ -28,7 +28,7 @@
     ],
     "dependencies": [
         {
-            "uuid": "61d31c48-2b8e-4a6c-9a4f-56d1c1c7a6e1",
+            "uuid": "2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01",
             "version": [
                 1,
                 0,
