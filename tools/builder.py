@@ -19,53 +19,98 @@ def load_rules():
     return "Regeln nicht gefunden."
 
 def create_dummy_texture(texture_name):
-    """
-    Erstellt eine einfache 16x16 PNG Datei, damit Items nicht lila-schwarz sind.
-    Das ist ein Platzhalter, bis du echte Bilder hochlädst.
-    """
+    """Erstellt ein 16x16 PNG (Schwarz), falls es fehlt."""
+    # Textur-Pfad muss im RP sein
     texture_path = os.path.join(RP_PATH, "textures", "items", f"{texture_name}.png")
     os.makedirs(os.path.dirname(texture_path), exist_ok=True)
     
     if not os.path.exists(texture_path):
-        # Wir erstellen ein extrem simples PNG (1x1 Pixel, schwarz) per Hex-Code
-        # Das spart uns komplexe Bild-Bibliotheken.
-        # Minimaler PNG Header + 1 schwarzer Pixel
+        # Minimaler PNG Header + 1 Pixel
         minimal_png = (
             b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
             b'\x00\x00\x00\rIDATx\x9cc\x60\x60\x60\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
         )
         with open(texture_path, 'wb') as f:
             f.write(minimal_png)
-        print(f"🎨 Platzhalter-Textur erstellt: {texture_path}")
+        print(f"🎨 Auto-Textur erstellt: {texture_name}.png")
+        
+    # Eintrag in item_texture.json sicherstellen
+    texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
+    os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
+    
+    data = {"resource_pack_name": "factory_rp", "texture_name": "atlas.items", "texture_data": {}}
+    if os.path.exists(texture_def_path):
+        try:
+            with open(texture_def_path, 'r') as f:
+                data = json.load(f)
+        except: pass
+    
+    # Eintrag hinzufügen, wenn er fehlt
+    if texture_name not in data.get("texture_data", {}):
+        if "texture_data" not in data: data["texture_data"] = {}
+        data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
+        with open(texture_def_path, 'w') as f:
+            json.dump(data, f, indent=4)
+        print(f"📒 Textur registriert: {texture_name}")
 
 def update_language_file(item_id, display_name):
-    """
-    Schreibt den Namen in die en_US.lang Datei, damit 'item.test:...' verschwindet.
-    """
+    """Übersetzt item.test:id.name -> Echter Name"""
     lang_path = os.path.join(RP_PATH, "texts", "en_US.lang")
     os.makedirs(os.path.dirname(lang_path), exist_ok=True)
     
-    # Format: item.test:obsidian_sword.name=Obsidian Schwert
-    entry = f"item.{item_id}.name={display_name}\n"
+    key = f"item.{item_id}.name"
+    line_to_add = f"{key}={display_name}\n"
     
-    # Prüfen ob schon vorhanden
-    content = ""
+    current_content = ""
     if os.path.exists(lang_path):
         with open(lang_path, 'r') as f:
-            content = f.read()
+            current_content = f.read()
             
-    if entry.strip() not in content:
+    if key not in current_content:
         with open(lang_path, 'a') as f:
-            f.write(entry)
-        print(f"📝 Name eingetragen: {display_name}")
+            f.write(line_to_add)
+        print(f"📝 Name '{display_name}' für {item_id} gespeichert.")
+
+def extract_info_and_fix(file_path, content):
+    """
+    Analysiert das generierte JSON. 
+    Wenn es ein Item ist, extrahieren wir Icon und Name
+    und erstellen automatisch die fehlenden Dateien.
+    """
+    try:
+        # Prüfen ob es ein Item ist (Format 1.21.0)
+        if "minecraft:item" in content:
+            comp = content["minecraft:item"].get("components", {})
+            desc = content["minecraft:item"].get("description", {})
+            
+            # 1. ID holen
+            item_id = desc.get("identifier", "")
+            
+            # 2. Icon holen & Textur erstellen
+            icon = comp.get("minecraft:icon")
+            if icon and isinstance(icon, str):
+                create_dummy_texture(icon)
+            elif icon and isinstance(icon, dict) and "texture" in icon:
+                # Falls KI doch ein Objekt schreibt, fangen wir das ab
+                create_dummy_texture(icon["texture"])
+
+            # 3. Name holen & Lang File schreiben
+            display = comp.get("minecraft:display_name")
+            if display and isinstance(display, dict) and "value" in display:
+                update_language_file(item_id, display["value"])
+            elif display and isinstance(display, str):
+                update_language_file(item_id, display)
+                
+    except Exception as e:
+        print(f"⚠️ Konnte Item-Info nicht extrahieren: {e}")
 
 def clean_up_old_files():
-    print("🧹 CLEANUP: Entferne alte JSONs...")
+    print("🧹 CLEANUP: Lösche alte Definitionen...")
+    # Wir löschen Items und Rezepte, damit keine veralteten Dateien (mit minecraft:weapon) übrig bleiben
     folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
     for folder in folders:
         if os.path.exists(folder):
             shutil.rmtree(folder)
-            os.makedirs(folder)
 
 def get_smart_model_name(client):
     try:
@@ -76,7 +121,7 @@ def get_smart_model_name(client):
     except: return "gemini-1.5-flash"
 
 def manage_manifests():
-    print("🔧 CHECK: Synchronisiere Manifeste...")
+    print("🔧 CHECK: Manifeste...")
     rp_path = os.path.join(RP_PATH, "manifest.json")
     bp_path = os.path.join(BP_PATH, "manifest.json")
     os.makedirs(RP_PATH, exist_ok=True)
@@ -94,7 +139,6 @@ def manage_manifests():
                 rp_version[2] += 1
         except: pass
     
-    # RP Manifest
     rp_data = {
         "format_version": 2,
         "header": {
@@ -108,7 +152,6 @@ def manage_manifests():
     }
     with open(rp_path, 'w') as f: json.dump(rp_data, f, indent=4)
 
-    # BP Manifest
     bp_uuid = str(uuid.uuid4())
     if os.path.exists(bp_path):
         try:
@@ -117,7 +160,6 @@ def manage_manifests():
                 bp_uuid = d['header']['uuid']
         except: pass
 
-    # BP Manifest (Dependency strikt auf RP Version setzen)
     bp_data = {
         "format_version": 2,
         "header": {
@@ -154,7 +196,7 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Visual Polish)...")
+    print("🏭 Factory startet (Auto-Extract Fix)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -163,24 +205,21 @@ def main():
     client = genai.Client(api_key=API_KEY)
     model = get_smart_model_name(client)
     
-    # Prompt fordert auch den Display Namen an für die Lang-Datei
+    # AGGRESSIVER PROMPT gegen veraltete Syntax
     prompt = f"""
-    Du bist ein Minecraft Bedrock Experte.
+    Du bist ein Minecraft Bedrock Experte (Version 1.21.0+).
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
     
-    Generiere JSON für BP und RP.
-    ZUSATZ: Gib mir für jedes Item auch den Namen der Textur-Datei (ohne .png) und den Display-Namen.
+    🚨 WICHTIGE VERBOTE (STRIKT EINHALTEN):
+    1. NIEMALS 'minecraft:weapon' benutzen! Das ist deprecated. Nutze Komponenten.
+    2. NIEMALS 'category' in 'description' benutzen.
+    3. 'minecraft:icon' muss ein String sein (z.B. "sword_icon").
+    4. 'minecraft:display_name' muss ein Objekt sein: {{ "value": "Name" }}.
     
-    OUTPUT FORMAT (JSON Liste):
+    Output NUR als JSON-Liste. Format:
     [
-        {{
-            "path": "BP/items/xyz.json", 
-            "content": {{...}}, 
-            "texture_name": "xyz_icon",
-            "display_name": "Mein Item Name",
-            "item_id": "test:xyz" 
-        }},
+        {{ "path": "BP/items/xyz.json", "content": {{...}} }},
         {{ "path": "RP/...", "content": {{...}} }}
     ]
     """
@@ -201,6 +240,8 @@ def main():
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             
             content = item['content']
+            
+            # Textur-Daten mergen falls nötig
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
                     with open(full_path, 'r') as f:
@@ -212,15 +253,11 @@ def main():
 
             with open(full_path, 'w') as f:
                 json.dump(content, f, indent=4)
+            print(f"✅ Datei: {path}")
             
-            # ZUSATZ-FEATURES:
-            # 1. Dummy Textur erstellen
-            if "texture_name" in item:
-                create_dummy_texture(item["texture_name"])
-            
-            # 2. Lang File Update
-            if "display_name" in item and "item_id" in item:
-                update_language_file(item["item_id"], item["display_name"])
+            # AUTOMATISCHER FIX: Wir schauen in den Inhalt der Datei
+            # und generieren Textur + Name, ohne die KI zu fragen.
+            extract_info_and_fix(path, content)
 
         ver = manage_manifests()
         create_mcaddon("MeinAddon", ver)
