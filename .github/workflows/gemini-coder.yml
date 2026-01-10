@@ -20,10 +20,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.11'  # ✅ UPGRADE: Von 3.9 auf 3.11 für neue Bibliotheken
 
       - name: Install Dependencies
-        run: pip install google-generativeai
+        # ✅ UPGRADE: -U erzwingt die allerneueste Version
+        run: pip install -U google-generativeai
 
       - name: Run Factory Builder
         env:
