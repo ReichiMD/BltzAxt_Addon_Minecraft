@@ -1,13 +1,13 @@
 {
     "format_version": 2,
     "header": {
-        "name": "Blitzaxt_BP",
-        "description": "Behavior Pack for Blitzaxt Add-on",
-        "uuid": "2e7a052b-7b02-4740-9b37-b6f79e9a4f4d",
+        "name": "Blitzaxt Behavior Pack",
+        "description": "Behaviors for Blitzaxt addon",
+        "uuid": "9f3c1a2d-b0e5-4e78-9a2c-0e8f3b6d7c1a",
         "version": [
             1,
             0,
-            1
+            0
         ],
         "min_engine_version": [
             1,
@@ -17,29 +17,20 @@
     },
     "modules": [
         {
-            "type": "data",
-            "uuid": "24e2c2f0-f9a8-43d9-959c-64f34d13e7e8",
+            "uuid": "5d8e7f1c-a3b4-4e5f-b6c7-d8e9f0a1b2c3",
             "version": [
                 1,
                 0,
                 0
-            ]
-        },
-        {
+            ],
             "type": "script",
             "language": "javascript",
-            "entry": "scripts/main.js",
-            "uuid": "b7f7e9f3-80c1-4b2a-8b83-a9d2c1e6e7d0",
-            "version": [
-                1,
-                0,
-                0
-            ]
+            "entry": "scripts/main.js"
         }
     ],
     "dependencies": [
         {
-            "uuid": "3d6d5c1a-2a4b-4f8e-9d0d-1c3b5a7f9e8d",
+            "uuid": "f4a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
             "version": [
                 1,
                 0,
@@ -48,7 +39,7 @@
         },
         {
             "module_name": "@minecraft/server",
-            "version": "2.3.0"
+            "version": "1.13.0"
         }
     ]
 }

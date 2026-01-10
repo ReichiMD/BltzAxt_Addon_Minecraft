@@ -5,8 +5,7 @@
             "identifier": "test:god_sword",
             "menu_category": {
                 "category": "equipment",
-                "group": "itemGroup.name.sword",
-                "is_hidden_in_commands": false
+                "group": "itemGroup.name.sword"
             }
         },
         "components": {
@@ -37,7 +36,7 @@
             },
             "minecraft:glint": true,
             "minecraft:display_name": {
-                "value": "item.test:god_sword.name"
+                "value": "One-Hit-Schwert"
             }
         }
     }

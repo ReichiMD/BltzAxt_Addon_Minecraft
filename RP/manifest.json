@@ -1,9 +1,9 @@
 {
     "format_version": 2,
     "header": {
-        "name": "Blitzaxt_RP",
-        "description": "Resource Pack for Blitzaxt Add-on",
-        "uuid": "3d6d5c1a-2a4b-4f8e-9d0d-1c3b5a7f9e8d",
+        "name": "Blitzaxt Resource Pack",
+        "description": "Textures for Blitzaxt addon",
+        "uuid": "f4a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
         "version": [
             1,
             0,
@@ -17,13 +17,13 @@
     },
     "modules": [
         {
-            "type": "resources",
-            "uuid": "c9b9d8a7-6c5d-5e4f-3a2b-1d0e9f8c7a6b",
+            "uuid": "1e9f8d7c-b6a5-4e3d-c2b1-a0f9e8d7c6b5",
             "version": [
                 1,
                 0,
                 0
-            ]
+            ],
+            "type": "resources"
         }
     ]
 }
