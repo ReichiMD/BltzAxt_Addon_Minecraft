@@ -11,46 +11,17 @@ BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
 
 def setup_gemini():
-    """Konfiguriert Gemini und sucht ein funktionierendes Modell."""
+    """Konfiguriert Gemini. Erzwingt das Flash-Modell für hohe Limits."""
     if not API_KEY:
         print("❌ FEHLER: GEMINI_API_KEY fehlt!")
         exit(1)
         
     genai.configure(api_key=API_KEY)
     
-    print("🤖 Debug: Prüfe verfügbare Modelle...")
-    try:
-        available_models = list(genai.list_models())
-        # Debug-Ausgabe aller Modelle im Log (damit wir sehen, was da ist)
-        for m in available_models:
-            print(f"   - Gefunden: {m.name}")
-
-        # Harte Liste der gewünschten Modelle (Reihenfolge wichtig)
-        candidates = [
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro",
-            "gemini-pro"
-        ]
-        
-        chosen_model = "gemini-1.5-flash" # Standard-Fallback
-        
-        # Wir suchen einen Match
-        found = False
-        for cand in candidates:
-            for m in available_models:
-                if cand in m.name and 'generateContent' in m.supported_generation_methods:
-                    chosen_model = m.name
-                    found = True
-                    break
-            if found: break
-            
-        print(f"✅ Nutze Modell: {chosen_model}")
-        return genai.GenerativeModel(chosen_model)
-
-    except Exception as e:
-        print(f"⚠️ Fehler bei Modellsuche ({e}). Nutze Fallback: gemini-1.5-flash")
-        return genai.GenerativeModel('gemini-1.5-flash')
+    # Wir nutzen hartcodiert 'gemini-1.5-flash'. 
+    # Dank Python 3.11 Update kennt die Bibliothek dieses Modell garantiert.
+    print("🤖 Nutze Modell: gemini-1.5-flash")
+    return genai.GenerativeModel('gemini-1.5-flash')
 
 def load_rules():
     if os.path.exists(DOCS_PATH):
@@ -77,19 +48,19 @@ def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
     
-    # Alte Dateien aufräumen
+    # Aufräumen
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
             except: pass
 
     with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Ordnerstruktur BP/ und RP/ im Zip bewahren
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
                 for root, _, files in os.walk(folder):
                     for file in files:
                         abs_path = os.path.join(root, file)
-                        # Wichtig: Ordnerstruktur im Zip muss BP/... und RP/... sein
                         rel_path = os.path.relpath(abs_path, REPO_ROOT)
                         zf.write(abs_path, rel_path)
     
@@ -101,7 +72,7 @@ def main():
     rules = load_rules()
     model = setup_gemini()
     
-    # SICHERER PROMPT (Keine f-string Syntaxfehler mehr!)
+    # SICHERER PROMPT (Keine f-string Syntaxfehler)
     prompt_parts = [
         "Du bist ein Minecraft Bedrock Add-On Experte.",
         "REGELN:", rules,
@@ -112,10 +83,8 @@ def main():
     ]
     
     try:
-        # Prompt zusammenbauen
         response = model.generate_content("\n".join(prompt_parts))
         
-        # JSON parsen
         text = response.text.replace("```json", "").replace("```", "").strip()
         start, end = text.find('['), text.rfind(']') + 1
         if start != -1 and end != -1: text = text[start:end]
@@ -124,13 +93,12 @@ def main():
         
         for item in files:
             path = item['path']
-            # Pfad-Sicherheit
             if ".." in path: continue
             
             full_path = os.path.join(REPO_ROOT, path)
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             
-            # Merge Logic für item_texture.json
+            # Merge Logic für Texturen
             content = item['content']
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
@@ -145,7 +113,6 @@ def main():
                 json.dump(content, f, indent=4)
             print(f"✅ Datei: {path}")
 
-        # Version & Packen
         ver = bump_version(os.path.join(BP_PATH, "manifest.json"))
         bump_version(os.path.join(RP_PATH, "manifest.json"))
         create_mcaddon("MeinAddon", ver)
