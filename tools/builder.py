@@ -1,7 +1,7 @@
 import os
 import json
 import zipfile
-import google.generativeai as genai
+from google import genai # Das ist der neue Import
 
 # KONFIGURATION
 API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -9,61 +9,6 @@ REPO_ROOT = "."
 DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
 BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
-
-def setup_gemini():
-    """
-    Sucht intelligent nach dem besten verfügbaren 'Flash 1.5' Modell.
-    Listet alle Optionen im Log auf, um Fehler transparent zu machen.
-    """
-    if not API_KEY:
-        print("❌ FEHLER: GEMINI_API_KEY fehlt!")
-        exit(1)
-        
-    genai.configure(api_key=API_KEY)
-    
-    print("🤖 MODEL-SCANNER: Suche nach 'Gemini 1.5 Flash'...")
-    
-    found_flash_models = []
-    all_models = []
-
-    try:
-        # 1. Alle Modelle abrufen und auflisten
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                all_models.append(m.name)
-                # Filter: Muss "1.5" und "flash" im Namen haben
-                if "1.5" in m.name and "flash" in m.name:
-                    found_flash_models.append(m.name)
-
-        # Logge alles für dich (Debug)
-        print(f"   - Verfügbare Modelle gesamt: {len(all_models)}")
-        for model_name in found_flash_models:
-            print(f"   - ✅ Kandidat gefunden: {model_name}")
-
-        # 2. Das beste Modell auswählen
-        chosen_model = None
-        
-        if found_flash_models:
-            # Nimm den ersten passenden Kandidaten (meistens der stabilste)
-            # Wir bevorzugen 'latest', falls vorhanden
-            latest = [m for m in found_flash_models if 'latest' in m]
-            if latest:
-                chosen_model = latest[0]
-            else:
-                chosen_model = found_flash_models[0]
-        
-        # Fallback, falls kein Flash gefunden wurde (z.B. wegen alter Bibliothek)
-        if not chosen_model:
-            print("⚠️ WARNUNG: Kein 'Flash 1.5' gefunden! Versuche Standard-Namen.")
-            chosen_model = 'models/gemini-1.5-flash'
-            
-        print(f"🚀 ENTSCHEIDUNG: Starte Fabrik mit {chosen_model}")
-        return genai.GenerativeModel(chosen_model)
-
-    except Exception as e:
-        print(f"❌ API-Fehler beim Scannen: {e}")
-        # Letzter Rettungsanker
-        return genai.GenerativeModel('gemini-1.5-flash')
 
 def load_rules():
     if os.path.exists(DOCS_PATH):
@@ -90,6 +35,7 @@ def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
     
+    # Aufräumen
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
@@ -103,16 +49,22 @@ def create_mcaddon(name, version):
                         abs_path = os.path.join(root, file)
                         rel_path = os.path.relpath(abs_path, REPO_ROOT)
                         zf.write(abs_path, rel_path)
-    
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet...")
+    print("🏭 Factory startet (Neues Google GenAI SDK)...")
+    
+    if not API_KEY:
+        print("❌ FEHLER: GEMINI_API_KEY fehlt!")
+        exit(1)
+
     issue_body = os.environ.get("ISSUE_BODY", "Test Item")
     rules = load_rules()
-    model = setup_gemini()
     
-    # Sicherer Prompt (Listen statt f-string Textblock)
+    # NEUER CLIENT SETUP
+    client = genai.Client(api_key=API_KEY)
+    
+    # Prompt bauen
     prompt_parts = [
         "Du bist ein Minecraft Bedrock Add-On Experte.",
         "REGELN:", rules,
@@ -121,9 +73,15 @@ def main():
         "WICHTIG: Output NUR als JSON-Liste. Format:",
         '[{"path": "BP/items/x.json", "content": {...}}, {"path": "RP/...", "content": {...}}]'
     ]
-    
+    full_prompt = "\n".join(prompt_parts)
+
     try:
-        response = model.generate_content("\n".join(prompt_parts))
+        # NEUER API AUFRUF
+        print("🚀 Sende Anfrage an Gemini 1.5 Flash...")
+        response = client.models.generate_content(
+            model='gemini-1.5-flash', 
+            contents=full_prompt
+        )
         
         text = response.text.replace("```json", "").replace("```", "").strip()
         start, end = text.find('['), text.rfind(']') + 1
