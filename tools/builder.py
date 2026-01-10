@@ -19,13 +19,12 @@ def load_rules():
     return "Regeln nicht gefunden."
 
 def create_dummy_texture(texture_name):
-    """Erstellt ein 16x16 PNG (Schwarz), falls es fehlt."""
-    # Textur-Pfad muss im RP sein
+    """Erstellt ein 16x16 PNG (Schwarz/Pink Check), falls es fehlt."""
     texture_path = os.path.join(RP_PATH, "textures", "items", f"{texture_name}.png")
     os.makedirs(os.path.dirname(texture_path), exist_ok=True)
     
     if not os.path.exists(texture_path):
-        # Minimaler PNG Header + 1 Pixel
+        # Einfaches PNG
         minimal_png = (
             b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
             b'\x00\x00\x00\rIDATx\x9cc\x60\x60\x60\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
@@ -34,7 +33,7 @@ def create_dummy_texture(texture_name):
             f.write(minimal_png)
         print(f"🎨 Auto-Textur erstellt: {texture_name}.png")
         
-    # Eintrag in item_texture.json sicherstellen
+    # Eintrag in item_texture.json
     texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
     os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
     
@@ -45,7 +44,6 @@ def create_dummy_texture(texture_name):
                 data = json.load(f)
         except: pass
     
-    # Eintrag hinzufügen, wenn er fehlt
     if texture_name not in data.get("texture_data", {}):
         if "texture_data" not in data: data["texture_data"] = {}
         data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
@@ -72,41 +70,36 @@ def update_language_file(item_id, display_name):
         print(f"📝 Name '{display_name}' für {item_id} gespeichert.")
 
 def extract_info_and_fix(file_path, content):
-    """
-    Analysiert das generierte JSON. 
-    Wenn es ein Item ist, extrahieren wir Icon und Name
-    und erstellen automatisch die fehlenden Dateien.
-    """
+    """Analysiert und repariert Item-Definitionen."""
     try:
-        # Prüfen ob es ein Item ist (Format 1.21.0)
         if "minecraft:item" in content:
+            # FIX: Zwinge Version auf 1.21.0, damit Komponenten wie 'digger' funktionieren
+            content["format_version"] = "1.21.0"
+            
             comp = content["minecraft:item"].get("components", {})
             desc = content["minecraft:item"].get("description", {})
-            
-            # 1. ID holen
             item_id = desc.get("identifier", "")
             
-            # 2. Icon holen & Textur erstellen
+            # Icon Fix
             icon = comp.get("minecraft:icon")
-            if icon and isinstance(icon, str):
-                create_dummy_texture(icon)
-            elif icon and isinstance(icon, dict) and "texture" in icon:
-                # Falls KI doch ein Objekt schreibt, fangen wir das ab
-                create_dummy_texture(icon["texture"])
+            if icon:
+                tex_name = icon if isinstance(icon, str) else icon.get("texture")
+                if tex_name: create_dummy_texture(tex_name)
 
-            # 3. Name holen & Lang File schreiben
+            # Name Fix
             display = comp.get("minecraft:display_name")
-            if display and isinstance(display, dict) and "value" in display:
-                update_language_file(item_id, display["value"])
-            elif display and isinstance(display, str):
-                update_language_file(item_id, display)
+            if display:
+                name_val = display.get("value") if isinstance(display, dict) else display
+                if name_val: update_language_file(item_id, name_val)
                 
+            return content # Geänderten Content zurückgeben
+
     except Exception as e:
-        print(f"⚠️ Konnte Item-Info nicht extrahieren: {e}")
+        print(f"⚠️ Fix fehlgeschlagen: {e}")
+    return content
 
 def clean_up_old_files():
     print("🧹 CLEANUP: Lösche alte Definitionen...")
-    # Wir löschen Items und Rezepte, damit keine veralteten Dateien (mit minecraft:weapon) übrig bleiben
     folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
     for folder in folders:
         if os.path.exists(folder):
@@ -196,7 +189,7 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Auto-Extract Fix)...")
+    print("🏭 Factory startet (Force Version 1.21.0)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -205,23 +198,18 @@ def main():
     client = genai.Client(api_key=API_KEY)
     model = get_smart_model_name(client)
     
-    # AGGRESSIVER PROMPT gegen veraltete Syntax
     prompt = f"""
     Du bist ein Minecraft Bedrock Experte (Version 1.21.0+).
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
     
-    🚨 WICHTIGE VERBOTE (STRIKT EINHALTEN):
-    1. NIEMALS 'minecraft:weapon' benutzen! Das ist deprecated. Nutze Komponenten.
-    2. NIEMALS 'category' in 'description' benutzen.
-    3. 'minecraft:icon' muss ein String sein (z.B. "sword_icon").
+    🚨 WICHTIGE ANWEISUNGEN:
+    1. Setze "format_version" IMMER auf "1.21.0".
+    2. NIEMALS 'minecraft:weapon' benutzen (deprecated).
+    3. 'minecraft:icon' muss ein String sein.
     4. 'minecraft:display_name' muss ein Objekt sein: {{ "value": "Name" }}.
     
-    Output NUR als JSON-Liste. Format:
-    [
-        {{ "path": "BP/items/xyz.json", "content": {{...}} }},
-        {{ "path": "RP/...", "content": {{...}} }}
-    ]
+    Output NUR als JSON-Liste.
     """
     
     try:
@@ -241,7 +229,11 @@ def main():
             
             content = item['content']
             
-            # Textur-Daten mergen falls nötig
+            # AUTOMATISCHER FIX & VERSION UPGRADE
+            # Hier überschreiben wir die Version hart auf 1.21.0
+            content = extract_info_and_fix(path, content)
+            
+            # Merge Logic für Texture Defs
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
                     with open(full_path, 'r') as f:
@@ -254,10 +246,6 @@ def main():
             with open(full_path, 'w') as f:
                 json.dump(content, f, indent=4)
             print(f"✅ Datei: {path}")
-            
-            # AUTOMATISCHER FIX: Wir schauen in den Inhalt der Datei
-            # und generieren Textur + Name, ohne die KI zu fragen.
-            extract_info_and_fix(path, content)
 
         ver = manage_manifests()
         create_mcaddon("MeinAddon", ver)
