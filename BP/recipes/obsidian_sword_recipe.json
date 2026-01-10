@@ -2,18 +2,18 @@
     "format_version": "1.12.0",
     "minecraft:recipe_shaped": {
         "description": {
-            "identifier": "test:obsidian_sword_recipe"
+            "identifier": "my_pack:obsidian_sword_recipe"
         },
         "tags": [
             "crafting_table"
         ],
         "pattern": [
-            " X ",
-            " X ",
+            " O ",
+            " O ",
             " S "
         ],
         "key": {
-            "X": {
+            "O": {
                 "item": "minecraft:obsidian"
             },
             "S": {
@@ -21,7 +21,7 @@
             }
         },
         "result": {
-            "item": "test:obsidian_sword"
+            "item": "my_pack:obsidian_sword"
         }
     }
 }
