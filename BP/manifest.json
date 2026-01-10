@@ -1,13 +1,13 @@
 {
     "format_version": 2,
     "header": {
-        "name": "Blitzaxt Behavior Pack",
-        "description": "Behaviors for Blitzaxt addon",
-        "uuid": "9f3c1a2d-b0e5-4e78-9a2c-0e8f3b6d7c1a",
+        "name": "Obsidian Gear BP",
+        "description": "Behavior Pack for Obsidian Gear",
+        "uuid": "8f3b7c9e-1d5a-4e2f-8a0b-1c3d5e7f9a1b",
         "version": [
             1,
             0,
-            0
+            1
         ],
         "min_engine_version": [
             1,
@@ -17,29 +17,23 @@
     },
     "modules": [
         {
-            "uuid": "5d8e7f1c-a3b4-4e5f-b6c7-d8e9f0a1b2c3",
+            "type": "data",
+            "uuid": "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
             "version": [
                 1,
                 0,
-                0
-            ],
-            "type": "script",
-            "language": "javascript",
-            "entry": "scripts/main.js"
+                1
+            ]
         }
     ],
     "dependencies": [
         {
-            "uuid": "f4a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
+            "uuid": "7e6f5d4c-3b2a-1e0f-9d8c-7b6a5d4e3f2g",
             "version": [
                 1,
                 0,
                 0
             ]
-        },
-        {
-            "module_name": "@minecraft/server",
-            "version": "1.13.0"
         }
     ]
 }

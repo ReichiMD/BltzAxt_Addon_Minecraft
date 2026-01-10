@@ -1,13 +1,13 @@
 {
     "format_version": 2,
     "header": {
-        "name": "Blitzaxt Resource Pack",
-        "description": "Textures for Blitzaxt addon",
-        "uuid": "f4a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
+        "name": "Obsidian Gear RP",
+        "description": "Resource Pack for Obsidian Gear",
+        "uuid": "7e6f5d4c-3b2a-1e0f-9d8c-7b6a5d4e3f2g",
         "version": [
             1,
             0,
-            0
+            1
         ],
         "min_engine_version": [
             1,
@@ -17,13 +17,13 @@
     },
     "modules": [
         {
-            "uuid": "1e9f8d7c-b6a5-4e3d-c2b1-a0f9e8d7c6b5",
+            "type": "resources",
+            "uuid": "6f5e4d3c-2b1a-0f9e-8d7c-6b5a4d3e2f1g",
             "version": [
                 1,
                 0,
-                0
-            ],
-            "type": "resources"
+                1
+            ]
         }
     ]
 }

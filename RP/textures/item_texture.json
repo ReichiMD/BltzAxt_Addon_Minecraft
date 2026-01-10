@@ -4,6 +4,9 @@
     "texture_data": {
         "test:god_sword": {
             "textures": "textures/items/diamond_sword"
+        },
+        "obsidian_sword": {
+            "textures": "textures/items/obsidian_sword"
         }
     }
 }
