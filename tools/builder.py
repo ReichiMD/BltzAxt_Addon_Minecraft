@@ -11,17 +11,59 @@ BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
 
 def setup_gemini():
-    """Konfiguriert Gemini. Erzwingt das Flash-Modell für hohe Limits."""
+    """
+    Sucht intelligent nach dem besten verfügbaren 'Flash 1.5' Modell.
+    Listet alle Optionen im Log auf, um Fehler transparent zu machen.
+    """
     if not API_KEY:
         print("❌ FEHLER: GEMINI_API_KEY fehlt!")
         exit(1)
         
     genai.configure(api_key=API_KEY)
     
-    # Wir nutzen hartcodiert 'gemini-1.5-flash'. 
-    # Dank Python 3.11 Update kennt die Bibliothek dieses Modell garantiert.
-    print("🤖 Nutze Modell: gemini-1.5-flash")
-    return genai.GenerativeModel('gemini-1.5-flash')
+    print("🤖 MODEL-SCANNER: Suche nach 'Gemini 1.5 Flash'...")
+    
+    found_flash_models = []
+    all_models = []
+
+    try:
+        # 1. Alle Modelle abrufen und auflisten
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                all_models.append(m.name)
+                # Filter: Muss "1.5" und "flash" im Namen haben
+                if "1.5" in m.name and "flash" in m.name:
+                    found_flash_models.append(m.name)
+
+        # Logge alles für dich (Debug)
+        print(f"   - Verfügbare Modelle gesamt: {len(all_models)}")
+        for model_name in found_flash_models:
+            print(f"   - ✅ Kandidat gefunden: {model_name}")
+
+        # 2. Das beste Modell auswählen
+        chosen_model = None
+        
+        if found_flash_models:
+            # Nimm den ersten passenden Kandidaten (meistens der stabilste)
+            # Wir bevorzugen 'latest', falls vorhanden
+            latest = [m for m in found_flash_models if 'latest' in m]
+            if latest:
+                chosen_model = latest[0]
+            else:
+                chosen_model = found_flash_models[0]
+        
+        # Fallback, falls kein Flash gefunden wurde (z.B. wegen alter Bibliothek)
+        if not chosen_model:
+            print("⚠️ WARNUNG: Kein 'Flash 1.5' gefunden! Versuche Standard-Namen.")
+            chosen_model = 'models/gemini-1.5-flash'
+            
+        print(f"🚀 ENTSCHEIDUNG: Starte Fabrik mit {chosen_model}")
+        return genai.GenerativeModel(chosen_model)
+
+    except Exception as e:
+        print(f"❌ API-Fehler beim Scannen: {e}")
+        # Letzter Rettungsanker
+        return genai.GenerativeModel('gemini-1.5-flash')
 
 def load_rules():
     if os.path.exists(DOCS_PATH):
@@ -48,14 +90,12 @@ def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
     
-    # Aufräumen
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
             except: pass
 
     with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # Ordnerstruktur BP/ und RP/ im Zip bewahren
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
                 for root, _, files in os.walk(folder):
@@ -72,7 +112,7 @@ def main():
     rules = load_rules()
     model = setup_gemini()
     
-    # SICHERER PROMPT (Keine f-string Syntaxfehler)
+    # Sicherer Prompt (Listen statt f-string Textblock)
     prompt_parts = [
         "Du bist ein Minecraft Bedrock Add-On Experte.",
         "REGELN:", rules,
@@ -98,7 +138,6 @@ def main():
             full_path = os.path.join(REPO_ROOT, path)
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             
-            # Merge Logic für Texturen
             content = item['content']
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
@@ -123,4 +162,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+                        
