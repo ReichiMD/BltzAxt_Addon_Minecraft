@@ -1,9 +1,9 @@
 {
     "format_version": 2,
     "header": {
-        "name": "Obsidian Sword BP",
-        "description": "Behavior Pack f\u00fcr das Obsidian Schwert.",
-        "uuid": "39a9c6c5-9b2f-4c12-8d7b-4e0a1f0a2d42",
+        "name": "Factory Addon BP",
+        "description": "Logic (Auto-Generated)",
+        "uuid": "2f3e4d5c-8b9a-4c1d-8e7f-6a5b4c3d2e1f",
         "version": [
             1,
             0,
@@ -18,7 +18,7 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "9d7b4e0a-1f0a-4d42-8c12-39a9c6c59b2f",
+            "uuid": "85f09df1-036b-45b0-bea2-1b692e5dbdee",
             "version": [
                 1,
                 0,
@@ -28,11 +28,11 @@
     ],
     "dependencies": [
         {
-            "uuid": "1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
+            "uuid": "0e4c8d5c-7b1e-4f2a-8c0d-6e5f4a3b2c1d",
             "version": [
                 1,
                 0,
-                0
+                1
             ]
         }
     ]
