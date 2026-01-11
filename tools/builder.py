@@ -224,12 +224,11 @@ def create_mcaddon(name, version):
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Hardcoded Task)...", "INFO")
+    log("🏭 Factory Start (Crash-Proof + Hardcoded Item)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
-    # WICHTIG: Wir überschreiben die Aufgabe hart, damit die KI nicht faul ist!
-    issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden und Haltbarkeit."
+    issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden."
     
     client = genai.Client(api_key=API_KEY)
     
@@ -252,11 +251,15 @@ def main():
         start, end = text.find('['), text.rfind(']') + 1
         files = json.loads(text[start:end])
         
-        # ALARM: Hat die KI überhaupt was gemacht?
         if len(files) == 0:
             log("KI hat 0 Dateien geliefert! CRITICAL ERROR.", "ERROR")
         
         for item in files:
+            # SAFETY CHECK: Hat das Item überhaupt einen Pfad?
+            if "path" not in item:
+                log("Warnung: Eintrag ohne Pfad gefunden, überspringe...", "WARN")
+                continue
+                
             path = item['path']
             if not ALLOW_SCRIPTS and (".js" in path or "scripts" in path):
                 log(f"Skript blockiert: {path}", "WARN"); continue
@@ -287,4 +290,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+    
