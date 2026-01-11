@@ -19,11 +19,7 @@ def load_rules():
     return "Regeln nicht gefunden."
 
 def register_texture_path(texture_name):
-    """
-    Registriert die Textur im System, ABER erstellt KEIN Bild.
-    Ergebnis: Lila-Schwarzes Muster im Spiel -> Signalisiert 'ToDo'.
-    """
-    # Eintrag in item_texture.json sicherstellen
+    """Registriert den Pfad, erstellt aber KEIN Bild (Lila-Schwarz = ToDo)."""
     texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
     os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
     
@@ -34,17 +30,15 @@ def register_texture_path(texture_name):
                 data = json.load(f)
         except: pass
     
-    # Wir sagen dem Spiel: "Suche das Bild hier."
-    # Da wir das Bild nicht erstellen, wird das Spiel das Karomuster zeigen.
     if texture_name not in data.get("texture_data", {}):
         if "texture_data" not in data: data["texture_data"] = {}
         data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
         with open(texture_def_path, 'w') as f:
             json.dump(data, f, indent=4)
-        print(f"📒 Textur-Pfad registriert: {texture_name} (Datei fehlt noch absichtlich)")
+        print(f"📒 Textur registriert: {texture_name}")
 
 def update_language_file(item_id, display_name):
-    """Übersetzt item.test:id.name -> Echter Name"""
+    """Schreibt den Namen in die en_US.lang"""
     lang_path = os.path.join(RP_PATH, "texts", "en_US.lang")
     os.makedirs(os.path.dirname(lang_path), exist_ok=True)
     
@@ -59,32 +53,39 @@ def update_language_file(item_id, display_name):
     if key not in current_content:
         with open(lang_path, 'a') as f:
             f.write(line_to_add)
-        print(f"📝 Name '{display_name}' gespeichert.")
+        print(f"📝 Name gespeichert: {display_name}")
 
 def extract_info_and_fix(file_path, content):
-    """Repariert NUR die Syntax, damit das Item überhaupt lädt."""
+    """Repariert Item-Definitionen (Kreativ-Menü & Version)."""
     try:
         if "minecraft:item" in content:
-            # FIX 1: Version muss stimmen, sonst lädt gar nichts
+            # FIX 1: Version erzwingen
             content["format_version"] = "1.21.0"
             
-            comp = content["minecraft:item"].get("components", {})
-            desc = content["minecraft:item"].get("description", {})
+            item_data = content["minecraft:item"]
+            desc = item_data.get("description", {})
+            comp = item_data.get("components", {})
             item_id = desc.get("identifier", "")
-            
-            # FIX 2: Icon Syntax korrigieren (String statt Objekt)
+
+            # FIX 2: Kreativ-Menü Eintrag erzwingen (Sonst ist es unsichtbar!)
+            if "menu_category" not in desc:
+                print(f"🔨 FIX: Füge 'menu_category' hinzu für {item_id}")
+                desc["menu_category"] = {
+                    "category": "equipment",
+                    "group": "itemGroup.name.sword" 
+                }
+                # Schreibe zurück in content
+                item_data["description"] = desc
+
+            # FIX 3: Icon Syntax
             icon = comp.get("minecraft:icon")
             if icon:
                 tex_name = icon if isinstance(icon, str) else icon.get("texture")
-                
-                # Syntax reparieren
                 if isinstance(icon, dict):
                     comp["minecraft:icon"] = tex_name
-                
-                # Pfad registrieren (damit lila Box erscheint), aber NICHT erstellen
                 if tex_name: register_texture_path(tex_name)
 
-            # FIX 3: Name eintragen (Optional, hilft bei der Übersicht)
+            # FIX 4: Name
             display = comp.get("minecraft:display_name")
             if display:
                 name_val = display.get("value") if isinstance(display, dict) else display
@@ -92,7 +93,9 @@ def extract_info_and_fix(file_path, content):
                      comp["minecraft:display_name"] = { "value": display }
                      name_val = display
                 if name_val: update_language_file(item_id, name_val)
-                
+            
+            # Update item_data zurück in content (Referenz)
+            content["minecraft:item"] = item_data
             return content
 
     except Exception as e:
@@ -100,7 +103,7 @@ def extract_info_and_fix(file_path, content):
     return content
 
 def clean_up_old_files():
-    print("🧹 CLEANUP: Lösche alte Definitionen...")
+    print("🧹 CLEANUP: Lösche alte JSONs...")
     folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
     for folder in folders:
         if os.path.exists(folder):
@@ -115,12 +118,17 @@ def get_smart_model_name(client):
     except: return "gemini-1.5-flash"
 
 def manage_manifests():
-    print("🔧 CHECK: Manifeste...")
+    """
+    Synchronisiert Manifeste. 
+    WICHTIG: RP UUID wird zuerst festgelegt und dann ZWINGEND in BP eingetragen.
+    """
+    print("🔧 CHECK: Synchronisiere Manifeste...")
     rp_path = os.path.join(RP_PATH, "manifest.json")
     bp_path = os.path.join(BP_PATH, "manifest.json")
     os.makedirs(RP_PATH, exist_ok=True)
     os.makedirs(BP_PATH, exist_ok=True)
 
+    # 1. Resource Pack (RP) behandeln
     rp_uuid = str(uuid.uuid4())
     rp_version = [1, 0, 0]
     
@@ -130,7 +138,7 @@ def manage_manifests():
                 d = json.load(f)
                 rp_uuid = d['header']['uuid']
                 rp_version = d['header']['version']
-                rp_version[2] += 1
+                rp_version[2] += 1 # Patch erhöhen
         except: pass
     
     rp_data = {
@@ -146,6 +154,7 @@ def manage_manifests():
     }
     with open(rp_path, 'w') as f: json.dump(rp_data, f, indent=4)
 
+    # 2. Behavior Pack (BP) behandeln
     bp_uuid = str(uuid.uuid4())
     if os.path.exists(bp_path):
         try:
@@ -154,6 +163,7 @@ def manage_manifests():
                 bp_uuid = d['header']['uuid']
         except: pass
 
+    # WICHTIG: Dependency muss EXAKT die RP UUID und Version haben
     bp_data = {
         "format_version": 2,
         "header": {
@@ -190,7 +200,7 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (No-Fake Visuals)...")
+    print("🏭 Factory startet (Creative Menu Fix)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -225,7 +235,7 @@ def main():
             
             content = item['content']
             
-            # Repariert Syntax, aber erstellt KEINE Bilder
+            # FIX: Fügt menu_category hinzu, wenn es fehlt
             content = extract_info_and_fix(path, content)
             
             if "item_texture.json" in path and os.path.exists(full_path):
