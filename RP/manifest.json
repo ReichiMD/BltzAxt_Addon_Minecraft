@@ -3,7 +3,7 @@
     "header": {
         "name": "Factory RP",
         "description": "Visuals",
-        "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
+        "uuid": "2c82b9e6-f9a8-4c07-b67f-5d07c08a44c3",
         "version": [
             1,
             0,
@@ -18,7 +18,7 @@
     "modules": [
         {
             "type": "resources",
-            "uuid": "d1c0c5d1-9b71-44e3-a01f-e04e8b6c787f",
+            "uuid": "a1c4bff4-7ebf-41a1-be44-be24ea9bbd8d",
             "version": [
                 1,
                 0,

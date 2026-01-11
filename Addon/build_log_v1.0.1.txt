@@ -1,16 +1,18 @@
 --- VERLAUF (SUMMARY) ---
-[12:46:31] ℹ️ 🏭 Factory Start (Dynamic Mode Activated)...
-[12:46:31] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
-[12:46:48] ✅ Datei erstellt: BP/manifest.json
-[12:46:48] ✅ Datei erstellt: RP/manifest.json
-[12:46:48] 🔧 ID korrigiert: test:obsidian_sword -> factory:obsidian_sword
-[12:46:48] ✅ Datei erstellt: BP/items/obsidian_sword.json
-[12:46:48] ✅ Datei erstellt: BP/recipes/obsidian_sword.json
-[12:46:48] ✅ Datei erstellt: RP/textures/item_texture.json
-[12:46:48] ✅ Datei erstellt: RP/textures/items/obsidian_sword.png
-[12:46:48] ℹ️ Manifest Update: V [1, 0, 1]
-[12:46:48] ℹ️ --- ABSCHLUSS ---
-[12:46:48] ✅ Build Sauber!
+[12:53:31] ℹ️ 🏭 Factory Start (Dynamic + Recipe Fix)...
+[12:53:31] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
+[12:53:58] ✅ Datei erstellt: RP/manifest.json
+[12:53:58] ✅ Datei erstellt: BP/manifest.json
+[12:53:58] 🔧 ID korrigiert: obsidian_tools:obsidian_sword -> factory:obsidian_sword
+[12:53:58] ✅ Datei erstellt: BP/items/obsidian_sword.json
+[12:53:58] 🔧 Rezept-Ergebnis korrigiert: obsidian_tools:obsidian_sword -> factory:obsidian_sword
+[12:53:58] ✅ Datei erstellt: BP/recipes/obsidian_sword_recipe.json
+[12:53:58] ✅ Datei erstellt: RP/textures/item_texture.json
+[12:53:58] ✅ Datei erstellt: RP/texts/en_US.lang
+[12:53:58] ✅ Datei erstellt: RP/textures/items/obsidian_sword.png
+[12:53:58] ℹ️ Manifest Update: V [1, 0, 1]
+[12:53:58] ℹ️ --- ABSCHLUSS ---
+[12:53:58] ✅ Build Sauber!
 
 
 ===========================================
@@ -20,7 +22,7 @@ Addon/
 BP/
     manifest.json
     recipes/
-        obsidian_sword.json
+        obsidian_sword_recipe.json
     items/
         obsidian_sword.json
 
@@ -43,57 +45,14 @@ RP/
 💻 CODE DUMP
 
 ===========================================
-📄 DATEI: BP/manifest.json
-===========================================
-{
-  "format_version": 2,
-  "header": {
-    "name": "Obsidian Sword Behavior Pack",
-    "description": "Adds the powerful Obsidian Sword to the game.",
-    "uuid": "90b1e332-902e-49b0-9519-74d6c412f71f",
-    "version": [
-      1,
-      0,
-      0
-    ],
-    "min_engine_version": [
-      1,
-      21,
-      0
-    ]
-  },
-  "modules": [
-    {
-      "type": "data",
-      "uuid": "90b1e332-902e-49b0-9519-74d6c412f71f",
-      "version": [
-        1,
-        0,
-        0
-      ]
-    }
-  ],
-  "dependencies": [
-    {
-      "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
-      "version": [
-        1,
-        0,
-        0
-      ]
-    }
-  ]
-}
-
-===========================================
 📄 DATEI: RP/manifest.json
 ===========================================
 {
   "format_version": 2,
   "header": {
-    "name": "Obsidian Sword Resource Pack",
-    "description": "Adds textures for the Obsidian Sword.",
-    "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
+    "name": "Obsidian Tools Resource Pack",
+    "description": "Resource Pack f\u00fcr die Obsidian Tools.",
+    "uuid": "2c82b9e6-f9a8-4c07-b67f-5d07c08a44c3",
     "version": [
       1,
       0,
@@ -108,7 +67,50 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
+      "uuid": "b7f0a8d3-e1c2-4f34-8c65-6d07c08a44c3",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}
+
+===========================================
+📄 DATEI: BP/manifest.json
+===========================================
+{
+  "format_version": 2,
+  "header": {
+    "name": "Obsidian Tools Behavior Pack",
+    "description": "Behavior Pack f\u00fcr die Obsidian Tools.",
+    "uuid": "a1b2c3d4-e5f6-4789-abcd-1234567890ef",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "2c82b9e6-f9a8-4c07-b67f-5d07c08a44c3",
       "version": [
         1,
         0,
@@ -155,62 +157,61 @@ RP/
         "value": "Obsidian Sword"
       },
       "minecraft:icon": "obsidian_sword",
+      "minecraft:hand_equipped": true,
       "minecraft:max_stack_size": 1,
-      "minecraft:enchantable": {
-        "value": 10,
-        "slot": "sword"
-      },
-      "minecraft:repairable": {
-        "repair_items": [
-          {
-            "items": [
-              "minecraft:obsidian"
-            ],
-            "repair_amount": "query.max_durability * 0.25"
-          }
-        ]
-      },
-      "minecraft:mining_speed": 1.5,
-      "minecraft:damage": 10,
-      "minecraft:weapon": {
-        "on_hit_block": {
-          "vibration": {
-            "block_target": "hit_block",
-            "radius": 5
-          },
-          "sound": "dig.stone"
-        },
-        "on_not_hit_block": {
-          "sound": "dig.stone"
+      "minecraft:durability": {
+        "max_durability": 1500,
+        "damage_chance": {
+          "min": 60,
+          "max": 100
         }
       },
-      "minecraft:durability": {
-        "max_durability": 3000
+      "minecraft:damage": 10,
+      "minecraft:enchantable": {
+        "value": 15,
+        "slot": "sword"
       },
-      "minecraft:use_animation": "break",
+      "minecraft:weapon": {
+        "on_hit_block": {
+          "damage": 0,
+          "vibration": {
+            "falloff": 0.5,
+            "intensity": 0.2
+          }
+        },
+        "on_not_hit_block": {
+          "damage": 0,
+          "vibration": {
+            "falloff": 0.5,
+            "intensity": 0.2
+          }
+        }
+      },
       "minecraft:creative_category": {
         "parent": "itemGroup.name.sword"
-      }
+      },
+      "minecraft:foil": false,
+      "minecraft:allow_offhand": false
     }
   }
 }
 
 ===========================================
-📄 DATEI: BP/recipes/obsidian_sword.json
+📄 DATEI: BP/recipes/obsidian_sword_recipe.json
 ===========================================
 {
   "format_version": "1.12.0",
   "minecraft:recipe_shaped": {
     "description": {
-      "identifier": "test:obsidian_sword_recipe"
+      "identifier": "obsidian_tools:obsidian_sword_recipe"
     },
     "tags": [
       "crafting_table"
     ],
     "pattern": [
-      " O ",
-      " O ",
-      " S "
+      "O",
+      "O",
+      "S"
     ],
     "key": {
       "O": {
@@ -221,8 +222,7 @@ RP/
       }
     },
     "result": {
-      "item": "test:obsidian_sword",
-      "count": 1
+      "item": "factory:obsidian_sword"
     }
   }
 }
@@ -240,9 +240,14 @@ RP/
 }
 
 ===========================================
+📄 DATEI: RP/texts/en_US.lang
+===========================================
+"item.obsidian_tools:obsidian_sword.name=Obsidian Sword"
+
+===========================================
 📄 DATEI: RP/textures/items/obsidian_sword.png
 ===========================================
-"PLACEHOLDER_FOR_OBSIDIAN_SWORD_TEXTURE_IMAGE_DATA (This should be your actual .png image file.)"
+"// This is a placeholder for the obsidian_sword.png image file. You need to create this PNG image (e.g., 16x16 pixels) and place it here."
 
 ===========================================
 📄 DATEI: RP/manifest.json
@@ -252,7 +257,7 @@ RP/
   "header": {
     "name": "Factory RP",
     "description": "Visuals",
-    "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
+    "uuid": "2c82b9e6-f9a8-4c07-b67f-5d07c08a44c3",
     "version": [
       1,
       0,
@@ -267,7 +272,7 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "d1c0c5d1-9b71-44e3-a01f-e04e8b6c787f",
+      "uuid": "a1c4bff4-7ebf-41a1-be44-be24ea9bbd8d",
       "version": [
         1,
         0,
@@ -285,7 +290,7 @@ RP/
   "header": {
     "name": "Factory BP",
     "description": "Logic",
-    "uuid": "90b1e332-902e-49b0-9519-74d6c412f71f",
+    "uuid": "a1b2c3d4-e5f6-4789-abcd-1234567890ef",
     "version": [
       1,
       0,
@@ -300,7 +305,7 @@ RP/
   "modules": [
     {
       "type": "data",
-      "uuid": "d26eae0d-9fd7-4120-a3e8-94ca9df028ec",
+      "uuid": "215d42ab-dd19-4d5e-a94d-6d0b306831ad",
       "version": [
         1,
         0,
@@ -310,7 +315,7 @@ RP/
   ],
   "dependencies": [
     {
-      "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
+      "uuid": "2c82b9e6-f9a8-4c07-b67f-5d07c08a44c3",
       "version": [
         1,
         0,

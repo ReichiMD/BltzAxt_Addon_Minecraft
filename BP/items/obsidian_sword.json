@@ -13,42 +13,41 @@
                 "value": "Obsidian Sword"
             },
             "minecraft:icon": "obsidian_sword",
+            "minecraft:hand_equipped": true,
             "minecraft:max_stack_size": 1,
-            "minecraft:enchantable": {
-                "value": 10,
-                "slot": "sword"
-            },
-            "minecraft:repairable": {
-                "repair_items": [
-                    {
-                        "items": [
-                            "minecraft:obsidian"
-                        ],
-                        "repair_amount": "query.max_durability * 0.25"
-                    }
-                ]
-            },
-            "minecraft:mining_speed": 1.5,
-            "minecraft:damage": 10,
-            "minecraft:weapon": {
-                "on_hit_block": {
-                    "vibration": {
-                        "block_target": "hit_block",
-                        "radius": 5
-                    },
-                    "sound": "dig.stone"
-                },
-                "on_not_hit_block": {
-                    "sound": "dig.stone"
+            "minecraft:durability": {
+                "max_durability": 1500,
+                "damage_chance": {
+                    "min": 60,
+                    "max": 100
                 }
             },
-            "minecraft:durability": {
-                "max_durability": 3000
+            "minecraft:damage": 10,
+            "minecraft:enchantable": {
+                "value": 15,
+                "slot": "sword"
             },
-            "minecraft:use_animation": "break",
+            "minecraft:weapon": {
+                "on_hit_block": {
+                    "damage": 0,
+                    "vibration": {
+                        "falloff": 0.5,
+                        "intensity": 0.2
+                    }
+                },
+                "on_not_hit_block": {
+                    "damage": 0,
+                    "vibration": {
+                        "falloff": 0.5,
+                        "intensity": 0.2
+                    }
+                }
+            },
             "minecraft:creative_category": {
                 "parent": "itemGroup.name.sword"
-            }
+            },
+            "minecraft:foil": false,
+            "minecraft:allow_offhand": false
         }
     }
 }
