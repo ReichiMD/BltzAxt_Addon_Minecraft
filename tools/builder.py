@@ -225,14 +225,13 @@ def create_mcaddon(name, version):
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Template & Tolerance Mode)...", "INFO")
+    log("🏭 Factory Start (Fix: Script Blocker)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
     issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden."
     client = genai.Client(api_key=API_KEY)
     
-    # NEU: Das Beispiel-JSON direkt in den Prompt, damit die KI nicht raten muss
     example_json = """
     [
         {
@@ -273,12 +272,10 @@ def main():
             path = ""
             content = {}
 
-            # 🕵️‍♂️ INTELLIGENTER DETEKTIV
             if "path" in item:
                 path = item["path"]
                 content = item["content"]
             elif "minecraft:item" in item:
-                # Aha! Item ohne Pfad -> Wir retten es!
                 try:
                     raw_id = item["minecraft:item"]["description"]["identifier"]
                     name = raw_id.split(":")[-1]
@@ -286,28 +283,25 @@ def main():
                     content = item
                     log(f"Pfad rekonstruiert: {path}", "FIX")
                 except:
-                    # Notfall-Name
                     rnd = random.randint(1000,9999)
                     path = f"BP/items/unknown_item_{rnd}.json"
                     content = item
                     log(f"Pfad unbekannt, speichere als: {path}", "WARN")
             else:
-                # Letzter Versuch: Was haben wir hier?
-                keys = list(item.keys())
-                log(f"Unbekanntes Objekt (Keys: {keys}). Speichere als Dump...", "WARN")
-                rnd = random.randint(1000,9999)
-                path = f"debug_dump_{rnd}.json"
-                content = item
+                log(f"Unbekanntes Datenformat. Überspringe.", "WARN")
+                continue
 
-            if not ALLOW_SCRIPTS and (".js" in path or "scripts" in path):
-                log(f"Skript blockiert: {path}", "WARN"); continue
+            # 🛠️ DER FIX: Wir prüfen nur noch auf die Endung .js!
+            if not ALLOW_SCRIPTS:
+                if path.endswith(".js"): 
+                    log(f"Skript blockiert (Endung .js): {path}", "WARN")
+                    continue
             
             full = os.path.join(REPO_ROOT, path)
             os.makedirs(os.path.dirname(full), exist_ok=True)
             content = extract_info_and_fix(path, content)
             append_code_to_log(path, content)
             
-            # Merge Texture Defs
             if "item_texture.json" in path and os.path.exists(full):
                 try: 
                     with open(full) as f: 
@@ -328,4 +322,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+    
