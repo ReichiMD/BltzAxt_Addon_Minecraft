@@ -16,7 +16,7 @@ DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
 BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "Addon")
-ALLOW_SCRIPTS = False 
+ALLOW_SCRIPTS = False  # Bleibt False für Sicherheit
 
 # LOG SYSTEM
 summary_log = []     
@@ -116,17 +116,14 @@ def extract_info_and_fix(file_path, content):
                 desc["identifier"] = new_id
                 log(f"ID korrigiert: {orig_id} -> {new_id}", "FIX")
 
-            # 3. Creative Menu Force & CLEANUP
-            if "category" in desc:
-                del desc["category"]
+            # 3. Creative Menu Force & Cleanup
+            if "category" in desc: del desc["category"]
             desc["menu_category"] = {"category": "equipment", "group": "itemGroup.name.sword"}
             item_data["description"] = desc
 
-            # 4. Icon & Name Check
-            # FIX: Icon darf nicht null sein!
+            # 4. Icon & Name
             icon = comp.get("minecraft:icon")
             if icon is None:
-                # Fallback: Wir nehmen den Namen des Items als Icon-Namen
                 icon = short
                 comp["minecraft:icon"] = icon
                 log(f"Icon war null, setze auf: {icon}", "FIX")
@@ -143,21 +140,16 @@ def extract_info_and_fix(file_path, content):
                 if val: update_language_file(new_id, val)
             
             # 5. FIX: Enchantable Slot
-            # Wenn enchantable da ist, MUSS 'slot' da sein.
             enchant = comp.get("minecraft:enchantable")
             if enchant:
                 if "slot" not in enchant:
-                    # Slot erraten
                     if "sword" in new_id: enchant["slot"] = "sword"
                     elif "pickaxe" in new_id: enchant["slot"] = "pickaxe"
                     elif "axe" in new_id: enchant["slot"] = "axe"
                     elif "bow" in new_id: enchant["slot"] = "bow"
-                    else: enchant["slot"] = "sword" # Default
+                    else: enchant["slot"] = "sword"
                     log(f"Enchantable Slot hinzugefügt: {enchant['slot']}", "FIX")
-                
-                # Cleanup falsche Keys von der KI
-                if "item_tag" in enchant: 
-                    del enchant["item_tag"]
+                if "item_tag" in enchant: del enchant["item_tag"]
 
             content["minecraft:item"] = item_data
             return content
@@ -248,32 +240,29 @@ def create_mcaddon(name, version):
                         abs = os.path.join(root, file)
                         rel = os.path.join(os.path.basename(folder), os.path.relpath(abs, folder))
                         zf.write(abs, rel)
-        
         # Log versteckt packen
         zf.write(full_log_path, "BP/build_log.txt")
 
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Logic Fix: Enchant & Icon)...", "INFO")
+    log("🏭 Factory Start (Dynamic Mode Activated)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
-    issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden."
+    # HIER IST DIE ÄNDERUNG: Wir hören wieder auf dich!
+    issue_body = os.environ.get("ISSUE_BODY", "Erstelle ein neues cooles Item")
     client = genai.Client(api_key=API_KEY)
     
     example_json = """
     [
         {
-            "path": "BP/items/my_sword.json",
+            "path": "BP/items/my_item.json",
             "content": {
                 "format_version": "1.21.0",
                 "minecraft:item": {
-                    "description": { "identifier": "factory:my_sword" },
-                    "components": { 
-                        "minecraft:damage": 10,
-                        "minecraft:icon": "my_sword_icon"
-                    }
+                    "description": { "identifier": "factory:my_item" },
+                    "components": { "minecraft:damage": 10 }
                 }
             }
         }
@@ -286,7 +275,7 @@ def main():
     REGELN: {load_rules()}
     
     WICHTIG:
-    1. Erstelle EINE Datei in 'BP/items/obsidian_sword.json'.
+    1. Erstelle die nötigen JSON Dateien für das gewünschte Item.
     2. KEINE Scripts! Nur JSON.
     3. Output MUSS exakt diesem JSON-Listen-Format entsprechen:
     {example_json}
@@ -299,7 +288,7 @@ def main():
         files = json.loads(text[start:end])
         
         if len(files) == 0:
-            log("KI hat 0 Dateien geliefert! CRITICAL ERROR.", "ERROR")
+            log("KI hat 0 Dateien geliefert!", "WARN")
         
         for item in files:
             path = ""
