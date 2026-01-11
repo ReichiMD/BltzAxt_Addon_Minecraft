@@ -12,6 +12,14 @@ DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
 BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
 
+# GLOBALES LOGBUCH
+build_log = []
+
+def log(message):
+    """Schreibt in die Konsole UND in das interne Logbuch."""
+    print(message)
+    build_log.append(message)
+
 def load_rules():
     if os.path.exists(DOCS_PATH):
         with open(DOCS_PATH, 'r') as f:
@@ -19,7 +27,6 @@ def load_rules():
     return "Regeln nicht gefunden."
 
 def register_texture_path(texture_name):
-    """Registriert den Pfad, erstellt aber KEIN Bild (Lila-Schwarz = ToDo)."""
     texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
     os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
     
@@ -35,10 +42,9 @@ def register_texture_path(texture_name):
         data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
         with open(texture_def_path, 'w') as f:
             json.dump(data, f, indent=4)
-        print(f"📒 Textur registriert: {texture_name}")
+        log(f"📒 Textur registriert: {texture_name}")
 
 def update_language_file(item_id, display_name):
-    """Schreibt den Namen in die en_US.lang"""
     lang_path = os.path.join(RP_PATH, "texts", "en_US.lang")
     os.makedirs(os.path.dirname(lang_path), exist_ok=True)
     
@@ -53,10 +59,10 @@ def update_language_file(item_id, display_name):
     if key not in current_content:
         with open(lang_path, 'a') as f:
             f.write(line_to_add)
-        print(f"📝 Name gespeichert: {display_name}")
+        log(f"📝 Name '{display_name}' für ID '{item_id}' gespeichert.")
 
 def extract_info_and_fix(file_path, content):
-    """Repariert Item-Definitionen AGGRESSIV."""
+    """Repariert Item-Definitionen und ERZWINGT Namespace 'factory:'."""
     try:
         if "minecraft:item" in content:
             # FIX 1: Version erzwingen
@@ -65,21 +71,23 @@ def extract_info_and_fix(file_path, content):
             item_data = content["minecraft:item"]
             desc = item_data.get("description", {})
             comp = item_data.get("components", {})
-            item_id = desc.get("identifier", "unbekannt")
-
-            # FIX 2: Altes Gerümpel löschen (creative_category stört in 1.21)
-            if "minecraft:creative_category" in comp:
-                del comp["minecraft:creative_category"]
-                print(f"🧹 Veraltete 'creative_category' entfernt aus {item_id}")
-
-            # FIX 3: Kreativ-Menü Eintrag ERZWINGEN (Überschreiben!)
-            # Wir fragen nicht mehr "if not in desc", wir machen es einfach.
+            
+            # FIX 2: Namespace Enforcer (ID Umbenennung)
+            original_id = desc.get("identifier", "unknown:item")
+            # Wir nehmen alles nach dem Doppelpunkt und setzen 'factory:' davor
+            short_name = original_id.split(":")[-1]
+            new_id = f"factory:{short_name}"
+            
+            if original_id != new_id:
+                desc["identifier"] = new_id
+                log(f"🛡️ ID geändert: {original_id} -> {new_id}")
+            
+            # FIX 3: Menu Kategorie erzwingen
             desc["menu_category"] = {
                 "category": "equipment",
                 "group": "itemGroup.name.sword" 
             }
             item_data["description"] = desc
-            print(f"🔨 Menu-Kategorie erzwungen für: {item_id}")
 
             # FIX 4: Icon Syntax
             icon = comp.get("minecraft:icon")
@@ -89,24 +97,24 @@ def extract_info_and_fix(file_path, content):
                     comp["minecraft:icon"] = tex_name
                 if tex_name: register_texture_path(tex_name)
 
-            # FIX 5: Name
+            # FIX 5: Name & Lang
             display = comp.get("minecraft:display_name")
             if display:
                 name_val = display.get("value") if isinstance(display, dict) else display
                 if isinstance(display, str):
                      comp["minecraft:display_name"] = { "value": display }
                      name_val = display
-                if name_val: update_language_file(item_id, name_val)
+                if name_val: update_language_file(new_id, name_val)
             
             content["minecraft:item"] = item_data
             return content
 
     except Exception as e:
-        print(f"⚠️ Fix fehlgeschlagen für {file_path}: {e}")
+        log(f"⚠️ Fix fehlgeschlagen für {file_path}: {e}")
     return content
 
 def clean_up_old_files():
-    print("🧹 CLEANUP: Lösche alte JSONs...")
+    log("🧹 CLEANUP: Lösche alte JSONs...")
     folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
     for folder in folders:
         if os.path.exists(folder):
@@ -121,8 +129,7 @@ def get_smart_model_name(client):
     except: return "gemini-1.5-flash"
 
 def manage_manifests():
-    """Synchronisiert Manifeste und verlinkt sie hart."""
-    print("🔧 CHECK: Synchronisiere Manifeste...")
+    log("🔧 CHECK: Synchronisiere Manifeste...")
     rp_path = os.path.join(RP_PATH, "manifest.json")
     bp_path = os.path.join(BP_PATH, "manifest.json")
     os.makedirs(RP_PATH, exist_ok=True)
@@ -141,7 +148,7 @@ def manage_manifests():
                 rp_version[2] += 1
         except: pass
     
-    print(f"📄 RP UUID: {rp_uuid} | Version: {rp_version}")
+    log(f"📄 RP UUID: {rp_uuid} | Version: {rp_version}")
 
     rp_data = {
         "format_version": 2,
@@ -165,10 +172,9 @@ def manage_manifests():
                 bp_uuid = d['header']['uuid']
         except: pass
 
-    print(f"📄 BP UUID: {bp_uuid} | Dependency auf RP: {rp_uuid}")
+    log(f"📄 BP UUID: {bp_uuid} | Dependency Exact: {rp_version}")
 
-    # FIX: Dependency Version auf [1,0,0] setzen, um "Strict Version" Probleme zu vermeiden.
-    # Solange RP >= 1.0.0 ist, wird es geladen.
+    # FIX: Exakte Versionsübereinstimmung für Dependency
     bp_data = {
         "format_version": 2,
         "header": {
@@ -179,7 +185,7 @@ def manage_manifests():
             "min_engine_version": [1, 21, 0]
         },
         "modules": [{"type": "data", "uuid": str(uuid.uuid4()), "version": rp_version}],
-        "dependencies": [{"uuid": rp_uuid, "version": [1, 0, 0]}] 
+        "dependencies": [{"uuid": rp_uuid, "version": rp_version}]
     }
     with open(bp_path, 'w') as f: json.dump(bp_data, f, indent=4)
         
@@ -188,12 +194,20 @@ def manage_manifests():
 def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
+    
+    # Aufräumen
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
             except: pass
 
+    # Log-Datei schreiben
+    log_filename = "debug_log.txt"
+    with open(log_filename, "w") as f:
+        f.write("\n".join(build_log))
+
     with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Ordner packen
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
                 folder_name = os.path.basename(folder)
@@ -202,10 +216,14 @@ def create_mcaddon(name, version):
                         abs_path = os.path.join(root, file)
                         rel_path = os.path.join(folder_name, os.path.relpath(abs_path, folder))
                         zf.write(abs_path, rel_path)
-    print(f"📦 Add-On erstellt: {filename}")
+        
+        # Log-Datei mit ins Archiv packen!
+        zf.write(log_filename, log_filename)
+        
+    log(f"📦 Add-On erstellt: {filename} (inkl. debug_log.txt)")
 
 def main():
-    print("🏭 Factory startet (Forced Visibility & Link)...")
+    log("🏭 Factory startet (Namespace Enforcer)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -240,7 +258,7 @@ def main():
             
             content = item['content']
             
-            # FIX: Menu Category & Cleanup
+            # FIX: ID, Version, Menu, Name
             content = extract_info_and_fix(path, content)
             
             if "item_texture.json" in path and os.path.exists(full_path):
@@ -254,13 +272,13 @@ def main():
 
             with open(full_path, 'w') as f:
                 json.dump(content, f, indent=4)
-            print(f"✅ Datei: {path}")
+            log(f"✅ Datei: {path}")
 
         ver = manage_manifests()
         create_mcaddon("MeinAddon", ver)
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        log(f"❌ ERROR: {e}")
         exit(1)
 
 if __name__ == "__main__":
