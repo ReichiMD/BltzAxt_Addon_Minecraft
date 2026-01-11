@@ -1,15 +1,16 @@
 --- VERLAUF (SUMMARY) ---
-[11:55:04] ℹ️ 🏭 Factory Start (Crash-Proof + Hardcoded Item)...
-[11:55:04] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
-[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
-[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
-[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
-[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
-[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
-[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
-[11:55:20] ℹ️ Manifest Update: V [1, 0, 8]
-[11:55:20] ℹ️ --- ABSCHLUSS ---
-[11:55:20] ⚠️ Build Warnungen: 6 | Fehler: 0
+[11:59:10] ℹ️ 🏭 Factory Start (Data Detective Mode)...
+[11:59:10] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
+[11:59:25] ℹ️ Manifest Update: V [1, 0, 9]
+[11:59:25] ℹ️ --- ABSCHLUSS ---
+[11:59:25] ⚠️ Build Warnungen: 7 | Fehler: 0
 
 
 ===========================================
@@ -49,7 +50,7 @@ RP/
     "version": [
       1,
       0,
-      8
+      9
     ],
     "min_engine_version": [
       1,
@@ -60,11 +61,11 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "77a9afc4-0e23-4301-8734-45562dde586b",
+      "uuid": "a2ea0c10-7c5d-4e0b-afd0-0e04f9c750de",
       "version": [
         1,
         0,
-        8
+        9
       ]
     }
   ]
@@ -82,7 +83,7 @@ RP/
     "version": [
       1,
       0,
-      8
+      9
     ],
     "min_engine_version": [
       1,
@@ -93,11 +94,11 @@ RP/
   "modules": [
     {
       "type": "data",
-      "uuid": "ad310885-2ca5-4a4e-8dce-d0760f4219a9",
+      "uuid": "2b192758-452c-41e5-a616-5fd18b50b04e",
       "version": [
         1,
         0,
-        8
+        9
       ]
     }
   ],
@@ -107,7 +108,7 @@ RP/
       "version": [
         1,
         0,
-        8
+        9
       ]
     }
   ]
