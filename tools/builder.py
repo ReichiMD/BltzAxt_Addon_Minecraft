@@ -116,7 +116,12 @@ def extract_info_and_fix(file_path, content):
                 desc["identifier"] = new_id
                 log(f"ID korrigiert: {orig_id} -> {new_id}", "FIX")
 
-            # 3. Creative Menu Force
+            # 3. Creative Menu Force & CLEANUP (Wichtig für Warnung!)
+            # Entferne veraltetes 'category' Feld, falls vorhanden
+            if "category" in desc:
+                del desc["category"]
+                log("Veraltetes Feld 'category' entfernt.", "FIX")
+            
             desc["menu_category"] = {"category": "equipment", "group": "itemGroup.name.sword"}
             item_data["description"] = desc
 
@@ -210,10 +215,12 @@ def create_mcaddon(name, version):
 
     full_content = ["--- VERLAUF (SUMMARY) ---"] + summary_log + [generate_ascii_tree(BP_PATH) + generate_ascii_tree(RP_PATH)] + ["\n💻 CODE DUMP"] + appendix_log
     
+    # 1. Log im Ordner speichern
     with open(full_log_path, "w", encoding='utf-8') as f: f.write("\n".join(full_content))
 
     zip_path = os.path.join(OUTPUT_DIR, filename)
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Ordner packen
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
                 for root, _, files in os.walk(folder):
@@ -221,11 +228,15 @@ def create_mcaddon(name, version):
                         abs = os.path.join(root, file)
                         rel = os.path.join(os.path.basename(folder), os.path.relpath(abs, folder))
                         zf.write(abs, rel)
-        zf.write(full_log_path, logname)
+        
+        # 2. Log-Datei AUCH in das Zip packen, aber VERSTECKT im BP Ordner
+        # Damit meckert Minecraft nicht über "ungültige ZIP", aber du hast das Log dabei.
+        zf.write(full_log_path, "BP/build_log.txt")
+
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Fix: Script Blocker)...", "INFO")
+    log("🏭 Factory Start (Polish & Shine)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
@@ -291,7 +302,6 @@ def main():
                 log(f"Unbekanntes Datenformat. Überspringe.", "WARN")
                 continue
 
-            # 🛠️ DER FIX: Wir prüfen nur noch auf die Endung .js!
             if not ALLOW_SCRIPTS:
                 if path.endswith(".js"): 
                     log(f"Skript blockiert (Endung .js): {path}", "WARN")
