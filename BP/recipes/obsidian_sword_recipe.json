@@ -1,27 +1,27 @@
 {
-    "format_version": "1.12.0",
-    "minecraft:recipe_shaped": {
-        "description": {
-            "identifier": "factory:obsidian_sword_recipe"
-        },
-        "tags": [
-            "crafting_table"
-        ],
-        "pattern": [
-            "#",
-            "#",
-            "X"
-        ],
-        "key": {
-            "#": {
-                "item": "minecraft:obsidian"
-            },
-            "X": {
-                "item": "minecraft:stick"
-            }
-        },
-        "result": {
-            "item": "factory:obsidian_sword_recipe"
-        }
+  "format_version": "1.12.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "factory:obsidian_sword_recipe"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "#",
+      "#",
+      "X"
+    ],
+    "key": {
+      "#": {
+        "item": "minecraft:obsidian"
+      },
+      "X": {
+        "item": "minecraft:stick"
+      }
+    },
+    "result": {
+      "item": "factory:obsidian_sword_recipe"
     }
+  }
 }

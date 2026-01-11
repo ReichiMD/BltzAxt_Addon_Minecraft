@@ -1,15 +1,15 @@
 {
-    "resource_pack_name": "test",
-    "texture_name": "atlas.items",
-    "texture_data": {
-        "factory:god_sword": {
-            "textures": "textures/items/diamond_sword"
-        },
-        "obsidian_sword": {
-            "textures": "textures/items/obsidian_sword"
-        },
-        "obsidian_sword_icon": {
-            "textures": "textures/items/obsidian_sword_icon"
-        }
+  "resource_pack_name": "test",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "factory:god_sword": {
+      "textures": "textures/items/diamond_sword"
+    },
+    "obsidian_sword": {
+      "textures": "textures/items/obsidian_sword"
+    },
+    "obsidian_sword_icon": {
+      "textures": "textures/items/obsidian_sword_icon"
     }
+  }
 }

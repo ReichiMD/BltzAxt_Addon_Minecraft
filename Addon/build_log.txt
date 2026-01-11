@@ -1,3 +1,227 @@
 Build Date: 20260111
-Logs:
-Sprachdatei generiert mit 1 Einträgen.
+--- VERLAUF (SUMMARY) ---
+[15:44:17] ℹ️ 🏭 Factory Start...
+✅ Datei geprüft: obsidian_sword_recipe.json
+✅ Datei geprüft: obsidian_sword.json
+✅ Datei geprüft: item_texture.json
+✅ Spracheintrag: 'Obsidian Sword'
+✅ Manifest erstellt: BP
+✅ Manifest erstellt: RP
+📦 .mcaddon gepackt: MyFactoryAddon_v20260111.mcaddon
+[15:44:17] ✅ Build Sauber!
+
+===========================================
+🌳 ORDNER STRUKTUR
+===========================================
+Addon/
+BP/
+├── items
+│   └── obsidian_sword.json
+├── manifest.json
+└── recipes
+    └── obsidian_sword_recipe.json
+
+RP/
+├── manifest.json
+├── texts
+│   ├── de_DE.lang
+│   └── en_US.lang
+└── textures
+    ├── item_texture.json
+    └── items
+        └── obsidian_sword.png
+
+
+💻 CODE DUMP
+
+===========================================
+📄 DATEI: BP/manifest.json
+===========================================
+{
+    "format_version": 2,
+    "header": {
+        "name": "Factory BP",
+        "description": "Auto-generated v20260111",
+        "uuid": "1b87bbb4-a6bd-4fcc-a43c-baabc5a07476",
+        "version": [
+            1,
+            0,
+            0
+        ],
+        "min_engine_version": [
+            1,
+            21,
+            0
+        ]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "98723424-b6a4-488e-bb82-a2f48b456127",
+            "version": [
+                1,
+                0,
+                0
+            ]
+        }
+    ],
+    "dependencies": [
+        {
+            "uuid": "296fdbf3-9a07-40c6-9856-dc66332507ef",
+            "version": [
+                1,
+                0,
+                0
+            ]
+        }
+    ]
+}
+
+===========================================
+📄 DATEI: BP/recipes/obsidian_sword_recipe.json
+===========================================
+{
+  "format_version": "1.12.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "factory:obsidian_sword_recipe"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "#",
+      "#",
+      "X"
+    ],
+    "key": {
+      "#": {
+        "item": "minecraft:obsidian"
+      },
+      "X": {
+        "item": "minecraft:stick"
+      }
+    },
+    "result": {
+      "item": "factory:obsidian_sword_recipe"
+    }
+  }
+}
+
+===========================================
+📄 DATEI: BP/items/obsidian_sword.json
+===========================================
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "factory:obsidian_sword",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
+      }
+    },
+    "components": {
+      "minecraft:display_name": {
+        "value": "Obsidian Sword"
+      },
+      "minecraft:icon": "obsidian_sword",
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "minecraft:durability": {
+        "max_durability": 2000,
+        "damage_chance": {
+          "min": 60,
+          "max": 100
+        }
+      },
+      "minecraft:damage": 10,
+      "minecraft:enchantable": {
+        "value": 15,
+        "slot": "sword"
+      },
+      "minecraft:creative_category": {
+        "group": "itemGroup.name.sword",
+        "category": "equipment"
+      },
+      "minecraft:foil": false,
+      "minecraft:tags": {
+        "tags": [
+          "minecraft:item_tag.sword"
+        ]
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": [
+              "minecraft:obsidian"
+            ],
+            "repair_amount": 0.5
+          }
+        ]
+      }
+    }
+  }
+}
+
+===========================================
+📄 DATEI: RP/manifest.json
+===========================================
+{
+    "format_version": 2,
+    "header": {
+        "name": "Factory RP",
+        "description": "Auto-generated v20260111",
+        "uuid": "296fdbf3-9a07-40c6-9856-dc66332507ef",
+        "version": [
+            1,
+            0,
+            0
+        ],
+        "min_engine_version": [
+            1,
+            21,
+            0
+        ]
+    },
+    "modules": [
+        {
+            "type": "resources",
+            "uuid": "09d1fbac-7157-4385-83d6-21cea0d025af",
+            "version": [
+                1,
+                0,
+                0
+            ]
+        }
+    ]
+}
+
+===========================================
+📄 DATEI: RP/texts/en_US.lang
+===========================================
+item.factory:obsidian_sword.name=Obsidian Sword
+
+===========================================
+📄 DATEI: RP/texts/de_DE.lang
+===========================================
+"item.my_pack:obsidian_sword.name=Obsidianschwert"
+
+===========================================
+📄 DATEI: RP/textures/item_texture.json
+===========================================
+{
+  "resource_pack_name": "test",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "factory:god_sword": {
+      "textures": "textures/items/diamond_sword"
+    },
+    "obsidian_sword": {
+      "textures": "textures/items/obsidian_sword"
+    },
+    "obsidian_sword_icon": {
+      "textures": "textures/items/obsidian_sword_icon"
+    }
+  }
+}

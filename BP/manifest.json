@@ -2,8 +2,8 @@
     "format_version": 2,
     "header": {
         "name": "Factory BP",
-        "description": "Auto-generated BP v20260111",
-        "uuid": "0d8f06a9-c843-42b3-9e10-d33f716da9a4",
+        "description": "Auto-generated v20260111",
+        "uuid": "1b87bbb4-a6bd-4fcc-a43c-baabc5a07476",
         "version": [
             1,
             0,
@@ -18,7 +18,7 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "166c4f99-eb24-4394-9dcf-60720d7e33aa",
+            "uuid": "98723424-b6a4-488e-bb82-a2f48b456127",
             "version": [
                 1,
                 0,
@@ -28,7 +28,7 @@
     ],
     "dependencies": [
         {
-            "uuid": "d0867beb-a7d8-4dd3-b1d7-0a90218e5b13",
+            "uuid": "296fdbf3-9a07-40c6-9856-dc66332507ef",
             "version": [
                 1,
                 0,
