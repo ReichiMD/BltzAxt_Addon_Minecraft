@@ -31,14 +31,18 @@ def enforce_namespace(data, logs):
              if data not in ["1.21.0", "1.20.0", "1.12.0"]:
                 new_str = f"{NAMESPACE}:{data.split(':')[1]}"
                 if new_str != data:
-                    # logs.append(f"🔧 ID korrigiert: {data} -> {new_str}") # Optional: sehr detailliert
                     return new_str, True
         return data, False
     else:
         return data, False
 
 def fix_recipe(data, filename, logs):
+    # --- FIX START: _recipe aus dem Namen entfernen ---
     item_name = os.path.splitext(os.path.basename(filename))[0]
+    if item_name.endswith("_recipe"):
+        item_name = item_name.replace("_recipe", "")
+    # --- FIX ENDE ---
+
     target_id = f"{NAMESPACE}:{item_name}"
     changed = False
     
@@ -103,7 +107,7 @@ def process_all(bp_dir, rp_dir):
                         if "recipes" in path:
                             data, changed_recipe = fix_recipe(data, file, logs)
                             
-                        # Speichern nur wenn nötig oder um Formatierung zu sichern
+                        # Speichern
                         with open(path, 'w') as f: json.dump(data, f, indent=2)
                         
                         if changed_ns or changed_recipe:
@@ -120,4 +124,3 @@ def process_all(bp_dir, rp_dir):
         logs.append(f"✅ Spracheintrag: '{entry.split('=')[1]}'")
     
     return logs
-        
