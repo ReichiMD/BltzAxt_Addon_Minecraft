@@ -1,13 +1,12 @@
 --- VERLAUF (SUMMARY) ---
-[12:08:39] ℹ️ 🏭 Factory Start (Fix: Script Blocker)...
-[12:08:39] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
-[12:08:50] 🔧 ID korrigiert: test:obsidian_sword -> factory:obsidian_sword
-[12:08:50] ℹ️ Textur 'obsidian_sword_icon' registriert.
-[12:08:50] ✅ Spracheintrag: 'Obsidian Sword'
-[12:08:50] ✅ Datei erstellt: BP/items/obsidian_sword.json
-[12:08:50] ℹ️ Manifest Update: V [1, 0, 11]
-[12:08:50] ℹ️ --- ABSCHLUSS ---
-[12:08:50] ✅ Build Sauber!
+[12:18:27] ℹ️ 🏭 Factory Start (Polish & Shine)...
+[12:18:27] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
+[12:18:36] 🔧 ID korrigiert: obsidian_items:obsidian_sword -> factory:obsidian_sword
+[12:18:36] 🔧 Veraltetes Feld 'category' entfernt.
+[12:18:36] ✅ Datei erstellt: BP/items/obsidian_sword.json
+[12:18:36] ℹ️ Manifest Update: V [1, 0, 12]
+[12:18:36] ℹ️ --- ABSCHLUSS ---
+[12:18:36] ✅ Build Sauber!
 
 
 ===========================================
@@ -38,29 +37,6 @@ RP/
 💻 CODE DUMP
 
 ===========================================
-📄 DATEI: RP/textures/item_texture.json
-===========================================
-{
-  "resource_pack_name": "test",
-  "texture_name": "atlas.items",
-  "texture_data": {
-    "test:god_sword": {
-      "textures": "textures/items/diamond_sword"
-    },
-    "obsidian_sword": {
-      "textures": "textures/items/obsidian_sword"
-    },
-    "obsidian_sword_icon": {
-      "textures": "textures/items/obsidian_sword_icon"
-    }
-  }
-}
-
-[LANG]
-item.factory:obsidian_sword.name=Obsidian Sword
-
-
-===========================================
 📄 DATEI: BP/items/obsidian_sword.json
 ===========================================
 {
@@ -68,7 +44,6 @@ item.factory:obsidian_sword.name=Obsidian Sword
   "minecraft:item": {
     "description": {
       "identifier": "factory:obsidian_sword",
-      "category": "equipment",
       "menu_category": {
         "category": "equipment",
         "group": "itemGroup.name.sword"
@@ -76,28 +51,36 @@ item.factory:obsidian_sword.name=Obsidian Sword
     },
     "components": {
       "minecraft:display_name": {
-        "value": "Obsidian Sword"
+        "value": "Obsidian Schwert"
       },
-      "minecraft:icon": "obsidian_sword_icon",
+      "minecraft:icon": null,
       "minecraft:max_stack_size": 1,
       "minecraft:hand_equipped": true,
       "minecraft:durability": {
-        "max_durability": 1500
+        "max_durability": 2000,
+        "damage_chance": {
+          "min": 0.6,
+          "max": 1.0
+        }
       },
-      "minecraft:creative_category": {
-        "group": "itemGroup.name.sword",
-        "category": "equipment"
-      },
-      "minecraft:damage": 10,
       "minecraft:repairable": {
         "repair_items": [
           {
             "items": [
               "minecraft:obsidian"
             ],
-            "repair_amount": 100
+            "repair_amount": "query.max_durability * 0.25"
           }
         ]
+      },
+      "minecraft:damage": 10,
+      "minecraft:enchantable": {
+        "value": 15,
+        "item_tag": "minecraft:item_tag.sword"
+      },
+      "minecraft:menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
       }
     }
   }
@@ -115,7 +98,7 @@ item.factory:obsidian_sword.name=Obsidian Sword
     "version": [
       1,
       0,
-      11
+      12
     ],
     "min_engine_version": [
       1,
@@ -126,11 +109,11 @@ item.factory:obsidian_sword.name=Obsidian Sword
   "modules": [
     {
       "type": "resources",
-      "uuid": "0daaa6fc-3ad3-4039-8d92-ede8b98dc2b7",
+      "uuid": "2a5eafa2-ddb4-477f-a19a-d2d0f96df5ef",
       "version": [
         1,
         0,
-        11
+        12
       ]
     }
   ]
@@ -148,7 +131,7 @@ item.factory:obsidian_sword.name=Obsidian Sword
     "version": [
       1,
       0,
-      11
+      12
     ],
     "min_engine_version": [
       1,
@@ -159,11 +142,11 @@ item.factory:obsidian_sword.name=Obsidian Sword
   "modules": [
     {
       "type": "data",
-      "uuid": "f910adad-98ee-4149-bc31-854a145d8b85",
+      "uuid": "0357279d-051d-41fb-b7db-18d1a7562a6a",
       "version": [
         1,
         0,
-        11
+        12
       ]
     }
   ],
@@ -173,7 +156,7 @@ item.factory:obsidian_sword.name=Obsidian Sword
       "version": [
         1,
         0,
-        11
+        12
       ]
     }
   ]
