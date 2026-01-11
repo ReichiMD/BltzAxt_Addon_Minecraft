@@ -18,22 +18,12 @@ def load_rules():
             return f.read()
     return "Regeln nicht gefunden."
 
-def create_dummy_texture(texture_name):
-    """Erstellt ein 16x16 PNG (Schwarz), falls es fehlt."""
-    texture_path = os.path.join(RP_PATH, "textures", "items", f"{texture_name}.png")
-    os.makedirs(os.path.dirname(texture_path), exist_ok=True)
-    
-    if not os.path.exists(texture_path):
-        # Minimaler PNG Header + 1 Pixel
-        minimal_png = (
-            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
-            b'\x00\x00\x00\rIDATx\x9cc\x60\x60\x60\x00\x00\x00\x05\x00\x01\x0d\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-        )
-        with open(texture_path, 'wb') as f:
-            f.write(minimal_png)
-        print(f"🎨 Auto-Textur erstellt: {texture_name}.png")
-        
-    # Eintrag in item_texture.json
+def register_texture_path(texture_name):
+    """
+    Registriert die Textur im System, ABER erstellt KEIN Bild.
+    Ergebnis: Lila-Schwarzes Muster im Spiel -> Signalisiert 'ToDo'.
+    """
+    # Eintrag in item_texture.json sicherstellen
     texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
     os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
     
@@ -44,12 +34,14 @@ def create_dummy_texture(texture_name):
                 data = json.load(f)
         except: pass
     
+    # Wir sagen dem Spiel: "Suche das Bild hier."
+    # Da wir das Bild nicht erstellen, wird das Spiel das Karomuster zeigen.
     if texture_name not in data.get("texture_data", {}):
         if "texture_data" not in data: data["texture_data"] = {}
         data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
         with open(texture_def_path, 'w') as f:
             json.dump(data, f, indent=4)
-        print(f"📒 Textur registriert: {texture_name}")
+        print(f"📒 Textur-Pfad registriert: {texture_name} (Datei fehlt noch absichtlich)")
 
 def update_language_file(item_id, display_name):
     """Übersetzt item.test:id.name -> Echter Name"""
@@ -67,30 +59,38 @@ def update_language_file(item_id, display_name):
     if key not in current_content:
         with open(lang_path, 'a') as f:
             f.write(line_to_add)
-        print(f"📝 Name '{display_name}' für {item_id} gespeichert.")
+        print(f"📝 Name '{display_name}' gespeichert.")
 
 def extract_info_and_fix(file_path, content):
-    """Analysiert und repariert Item-Definitionen."""
+    """Repariert NUR die Syntax, damit das Item überhaupt lädt."""
     try:
-        # Check ob es ein Item ist
         if "minecraft:item" in content:
-            # FIX 1: Zwinge Version auf 1.21.0
+            # FIX 1: Version muss stimmen, sonst lädt gar nichts
             content["format_version"] = "1.21.0"
             
             comp = content["minecraft:item"].get("components", {})
             desc = content["minecraft:item"].get("description", {})
             item_id = desc.get("identifier", "")
             
-            # FIX 2: Textur automatisch erstellen
+            # FIX 2: Icon Syntax korrigieren (String statt Objekt)
             icon = comp.get("minecraft:icon")
             if icon:
                 tex_name = icon if isinstance(icon, str) else icon.get("texture")
-                if tex_name: create_dummy_texture(tex_name)
+                
+                # Syntax reparieren
+                if isinstance(icon, dict):
+                    comp["minecraft:icon"] = tex_name
+                
+                # Pfad registrieren (damit lila Box erscheint), aber NICHT erstellen
+                if tex_name: register_texture_path(tex_name)
 
-            # FIX 3: Name automatisch eintragen
+            # FIX 3: Name eintragen (Optional, hilft bei der Übersicht)
             display = comp.get("minecraft:display_name")
             if display:
                 name_val = display.get("value") if isinstance(display, dict) else display
+                if isinstance(display, str):
+                     comp["minecraft:display_name"] = { "value": display }
+                     name_val = display
                 if name_val: update_language_file(item_id, name_val)
                 
             return content
@@ -190,7 +190,7 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Robust & Auto-Fix)...")
+    print("🏭 Factory startet (No-Fake Visuals)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -204,15 +204,7 @@ def main():
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
     
-    🚨 WICHTIG:
-    1. Setze "format_version" auf "1.21.0".
-    2. NIEMALS 'minecraft:weapon'.
-    3. Output NUR als JSON-Liste.
-    
-    Format:
-    [
-        {{ "path": "BP/items/xyz.json", "content": {{...}} }}
-    ]
+    Output NUR als JSON-Liste.
     """
     
     try:
@@ -224,11 +216,7 @@ def main():
         files = json.loads(text)
         
         for item in files:
-            # ROBUSNESS CHECK: Hat die KI das 'path' Feld vergessen?
-            if "path" not in item:
-                print("⚠️ Warnung: Ein Eintrag hat keinen Pfad. Überspringe...")
-                continue
-                
+            if "path" not in item: continue
             path = item['path']
             if ".." in path: continue
             
@@ -237,10 +225,9 @@ def main():
             
             content = item['content']
             
-            # Auto-Fix durchführen (Version update, Name extract)
+            # Repariert Syntax, aber erstellt KEINE Bilder
             content = extract_info_and_fix(path, content)
             
-            # Textur-Daten mergen
             if "item_texture.json" in path and os.path.exists(full_path):
                 try:
                     with open(full_path, 'r') as f:
