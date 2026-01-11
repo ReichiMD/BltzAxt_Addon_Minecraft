@@ -5,6 +5,7 @@ import uuid
 import shutil
 from google import genai
 import datetime
+import random
 
 # ==========================================
 # ⚙️ KONFIGURATION
@@ -224,19 +225,39 @@ def create_mcaddon(name, version):
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Data Detective Mode)...", "INFO")
+    log("🏭 Factory Start (Template & Tolerance Mode)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
     issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden."
     client = genai.Client(api_key=API_KEY)
     
+    # NEU: Das Beispiel-JSON direkt in den Prompt, damit die KI nicht raten muss
+    example_json = """
+    [
+        {
+            "path": "BP/items/my_sword.json",
+            "content": {
+                "format_version": "1.21.0",
+                "minecraft:item": {
+                    "description": { "identifier": "factory:my_sword" },
+                    "components": { "minecraft:damage": 10 }
+                }
+            }
+        }
+    ]
+    """
+
     prompt = f"""
     Du bist ein Minecraft Bedrock Experte (1.21.0).
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
     
-    Output NUR als JSON-Liste.
+    WICHTIG:
+    1. Erstelle EINE Datei in 'BP/items/obsidian_sword.json'.
+    2. KEINE Scripts! Nur JSON.
+    3. Output MUSS exakt diesem JSON-Listen-Format entsprechen:
+    {example_json}
     """
     
     try:
@@ -252,25 +273,31 @@ def main():
             path = ""
             content = {}
 
-            # 🕵️‍♂️ DETEKTIV-MODUS: Pfad erraten, wenn er fehlt
+            # 🕵️‍♂️ INTELLIGENTER DETEKTIV
             if "path" in item:
                 path = item["path"]
                 content = item["content"]
             elif "minecraft:item" in item:
-                # Aha! Die KI hat direkt das Item geschickt ohne "path" Wrapper
-                content = item
-                # Wir suchen den Identifier um den Pfad zu bauen
+                # Aha! Item ohne Pfad -> Wir retten es!
                 try:
-                    raw_id = content["minecraft:item"]["description"]["identifier"]
+                    raw_id = item["minecraft:item"]["description"]["identifier"]
                     name = raw_id.split(":")[-1]
                     path = f"BP/items/{name}.json"
-                    log(f"Pfad rekonstruiert aus Inhalt: {path}", "FIX")
+                    content = item
+                    log(f"Pfad rekonstruiert: {path}", "FIX")
                 except:
-                    log("Konnte Pfad nicht erraten. Überspringe.", "WARN")
-                    continue
+                    # Notfall-Name
+                    rnd = random.randint(1000,9999)
+                    path = f"BP/items/unknown_item_{rnd}.json"
+                    content = item
+                    log(f"Pfad unbekannt, speichere als: {path}", "WARN")
             else:
-                log("Unbekanntes Datenformat. Überspringe.", "WARN")
-                continue
+                # Letzter Versuch: Was haben wir hier?
+                keys = list(item.keys())
+                log(f"Unbekanntes Objekt (Keys: {keys}). Speichere als Dump...", "WARN")
+                rnd = random.randint(1000,9999)
+                path = f"debug_dump_{rnd}.json"
+                content = item
 
             if not ALLOW_SCRIPTS and (".js" in path or "scripts" in path):
                 log(f"Skript blockiert: {path}", "WARN"); continue
@@ -301,4 +328,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-            
+        
