@@ -1,375 +1,42 @@
 import os
-import json
-import zipfile
-import uuid
-import shutil
-from google import genai
+import sys
 import datetime
-import random
 
-# ==========================================
-# ⚙️ KONFIGURATION
-# ==========================================
-API_KEY = os.environ.get("GEMINI_API_KEY")
-REPO_ROOT = "."
-DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
-BP_PATH = os.path.join(REPO_ROOT, "BP")
-RP_PATH = os.path.join(REPO_ROOT, "RP")
-OUTPUT_DIR = os.path.join(REPO_ROOT, "Addon")
-ALLOW_SCRIPTS = False 
+# Importiere die Module aus dem gleichen Ordner
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import content_processor
+import packager
 
-# LOG SYSTEM
-summary_log = []     
-appendix_log = []    
-warnings_count = 0
-errors_count = 0
-
-def log(message, level="INFO"):
-    global warnings_count, errors_count
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    icon = "ℹ️"
-    if level == "WARN": 
-        icon = "⚠️"
-        warnings_count += 1
-    elif level == "ERROR": 
-        icon = "❌"
-        errors_count += 1
-    elif level == "SUCCESS":
-        icon = "✅"
-    elif level == "FIX":
-        icon = "🔧"
-    entry = f"[{timestamp}] {icon} {message}"
-    print(entry)
-    summary_log.append(entry)
-
-def append_code_to_log(filename, content):
-    pretty_json = json.dumps(content, indent=2)
-    appendix_log.append(f"\n===========================================\n📄 DATEI: {filename}\n===========================================\n{pretty_json}")
-
-def generate_ascii_tree(startpath):
-    tree_str = "\n\n===========================================\n🌳 ORDNER STRUKTUR\n===========================================\nAddon/\n"
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, '').count(os.sep)
-        indent = ' ' * 4 * (level)
-        base_name = os.path.basename(root)
-        if base_name == ".": continue
-        tree_str += '{}{}/\n'.format(indent, base_name)
-        subindent = ' ' * 4 * (level + 1)
-        for f in files:
-            tree_str += '{}{}\n'.format(subindent, f)
-    return tree_str
-
-def load_rules():
-    if os.path.exists(DOCS_PATH):
-        with open(DOCS_PATH, 'r') as f: return f.read()
-    return "Regeln nicht gefunden."
-
-# HELFER
-def register_texture_path(texture_name):
-    texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
-    os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
-    data = {"resource_pack_name": "factory_rp", "texture_name": "atlas.items", "texture_data": {}}
-    if os.path.exists(texture_def_path):
-        try:
-            with open(texture_def_path, 'r') as f: data = json.load(f)
-        except: pass
-    
-    if texture_name not in data.get("texture_data", {}):
-        if "texture_data" not in data: data["texture_data"] = {}
-        data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
-        with open(texture_def_path, 'w') as f: json.dump(data, f, indent=4)
-        log(f"Textur '{texture_name}' registriert.", "INFO")
-        append_code_to_log("RP/textures/item_texture.json", data)
-    else:
-        append_code_to_log("RP/textures/item_texture.json", data)
-
-def update_language_file(item_id, display_name):
-    lang_path = os.path.join(RP_PATH, "texts", "en_US.lang")
-    os.makedirs(os.path.dirname(lang_path), exist_ok=True)
-    key = f"item.{item_id}.name"
-    line = f"{key}={display_name}\n"
-    current = ""
-    if os.path.exists(lang_path):
-        with open(lang_path, 'r') as f: current = f.read()
-    if key not in current:
-        with open(lang_path, 'a') as f: f.write(line)
-        log(f"Spracheintrag: '{display_name}'", "SUCCESS")
-        appendix_log.append(f"\n[LANG]\n{line}")
-
-def extract_info_and_fix(file_path, content):
-    try:
-        # --- FIX FÜR ITEMS ---
-        if "minecraft:item" in content:
-            item_data = content["minecraft:item"]
-            desc = item_data.get("description", {})
-            comp = item_data.get("components", {})
-            
-            # 1. Version Force
-            if content.get("format_version") != "1.21.0":
-                content["format_version"] = "1.21.0"
-                log("Format auf 1.21.0 gesetzt.", "FIX")
-            
-            # 2. Namespace Force
-            orig_id = desc.get("identifier", "unknown:item")
-            short = orig_id.split(":")[-1]
-            new_id = f"factory:{short}"
-            if orig_id != new_id:
-                desc["identifier"] = new_id
-                log(f"ID korrigiert: {orig_id} -> {new_id}", "FIX")
-
-            # 3. Creative Menu Force & Cleanup
-            if "category" in desc: del desc["category"]
-            desc["menu_category"] = {"category": "equipment", "group": "itemGroup.name.sword"}
-            item_data["description"] = desc
-
-            # 4. Icon & Name
-            icon = comp.get("minecraft:icon")
-            if icon is None:
-                icon = short
-                comp["minecraft:icon"] = icon
-                log(f"Icon war null, setze auf: {icon}", "FIX")
-            
-            if icon:
-                tname = icon if isinstance(icon, str) else icon.get("texture")
-                if isinstance(icon, dict): comp["minecraft:icon"] = tname
-                if tname: register_texture_path(tname)
-
-            display = comp.get("minecraft:display_name")
-            if display:
-                val = display.get("value") if isinstance(display, dict) else display
-                if isinstance(display, str): comp["minecraft:display_name"] = {"value": display}; val = display
-                if val: update_language_file(new_id, val)
-            
-            # 5. Enchantable Slot
-            enchant = comp.get("minecraft:enchantable")
-            if enchant:
-                if "slot" not in enchant:
-                    if "sword" in new_id: enchant["slot"] = "sword"
-                    elif "pickaxe" in new_id: enchant["slot"] = "pickaxe"
-                    elif "axe" in new_id: enchant["slot"] = "axe"
-                    elif "bow" in new_id: enchant["slot"] = "bow"
-                    else: enchant["slot"] = "sword"
-                    log(f"Enchantable Slot hinzugefügt: {enchant['slot']}", "FIX")
-                if "item_tag" in enchant: del enchant["item_tag"]
-
-            content["minecraft:item"] = item_data
-            return content
-
-        # --- FIX FÜR REZEPTE ---
-        elif "minecraft:recipe_shaped" in content:
-            recipe = content["minecraft:recipe_shaped"]
-            if "result" in recipe:
-                if "item" in recipe["result"]:
-                    orig_res = recipe["result"]["item"]
-                    short_res = orig_res.split(":")[-1]
-                    new_res = f"factory:{short_res}"
-                    if orig_res != new_res:
-                        recipe["result"]["item"] = new_res
-                        log(f"Rezept-Ergebnis korrigiert: {orig_res} -> {new_res}", "FIX")
-            content["minecraft:recipe_shaped"] = recipe
-            return content
-            
-    except Exception as e:
-        log(f"Fehler bei Fix: {e}", "ERROR")
-    return content
-
-def clean_up_old_files():
-    log("Lösche alte Dateien (BP/items, BP/recipes)...", "INFO")
-    folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
-    if not ALLOW_SCRIPTS: folders.append(os.path.join(BP_PATH, "scripts"))
-    for f in folders:
-        if os.path.exists(f): shutil.rmtree(f)
-
-def get_model(client):
-    try:
-        flash = [m.name for m in client.models.list() if "flash" in m.name.lower()]
-        best = flash[0] if flash else "gemini-1.5-flash"
-        return best.replace("models/", "") if best.startswith("models/") else best
-    except: return "gemini-1.5-flash"
-
-def manage_manifests():
-    rp_path = os.path.join(RP_PATH, "manifest.json")
-    bp_path = os.path.join(BP_PATH, "manifest.json")
-    os.makedirs(RP_PATH, exist_ok=True); os.makedirs(BP_PATH, exist_ok=True)
-
-    rp_uuid = str(uuid.uuid4()); rp_ver = [1, 0, 0]
-    if os.path.exists(rp_path):
-        try:
-            with open(rp_path) as f: d=json.load(f); rp_uuid=d['header']['uuid']; rp_ver=d['header']['version']; rp_ver[2]+=1
-        except: pass
-
-    rp_data = {
-        "format_version": 2,
-        "header": {"name": "Factory RP", "description": "Visuals", "uuid": rp_uuid, "version": rp_ver, "min_engine_version": [1, 21, 0]},
-        "modules": [{"type": "resources", "uuid": str(uuid.uuid4()), "version": rp_ver}]
-    }
-    with open(rp_path, 'w') as f: json.dump(rp_data, f, indent=4)
-    append_code_to_log("RP/manifest.json", rp_data)
-
-    bp_uuid = str(uuid.uuid4())
-    if os.path.exists(bp_path):
-        try:
-            with open(bp_path) as f: d=json.load(f); bp_uuid=d['header']['uuid']
-        except: pass
-
-    log(f"Manifest Update: V {rp_ver}", "INFO")
-
-    bp_data = {
-        "format_version": 2,
-        "header": {"name": "Factory BP", "description": "Logic", "uuid": bp_uuid, "version": rp_ver, "min_engine_version": [1, 21, 0]},
-        "modules": [{"type": "data", "uuid": str(uuid.uuid4()), "version": rp_ver}],
-        "dependencies": [{"uuid": rp_uuid, "version": rp_ver}]
-    }
-    with open(bp_path, 'w') as f: json.dump(bp_data, f, indent=4)
-    append_code_to_log("BP/manifest.json", bp_data)
-    return rp_ver
-
-def create_mcaddon(name, version):
-    v_str = f"{version[0]}.{version[1]}.{version[2]}"
-    filename = f"{name}_v{v_str}.mcaddon"
-    logname = f"build_log_v{v_str}.txt"
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
-    # Cleanup Output
-    for f in os.listdir(OUTPUT_DIR):
-        try: os.unlink(os.path.join(OUTPUT_DIR, f))
-        except: pass
-
-    full_log_path = os.path.join(OUTPUT_DIR, logname)
-    
-    # Abschluss
-    log("--- ABSCHLUSS ---", "INFO")
-    if errors_count == 0 and warnings_count == 0: log("Build Sauber!", "SUCCESS")
-    else: log(f"Build Warnungen: {warnings_count} | Fehler: {errors_count}", "WARN")
-
-    full_content = ["--- VERLAUF (SUMMARY) ---"] + summary_log + [generate_ascii_tree(BP_PATH) + generate_ascii_tree(RP_PATH)] + ["\n💻 CODE DUMP"] + appendix_log
-    
-    with open(full_log_path, "w", encoding='utf-8') as f: f.write("\n".join(full_content))
-
-    zip_path = os.path.join(OUTPUT_DIR, filename)
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for folder in [BP_PATH, RP_PATH]:
-            if os.path.exists(folder):
-                for root, _, files in os.walk(folder):
-                    for file in files:
-                        abs = os.path.join(root, file)
-                        rel = os.path.join(os.path.basename(folder), os.path.relpath(abs, folder))
-                        zf.write(abs, rel)
-        zf.write(full_log_path, "BP/build_log.txt")
-
-    log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
+# --- KONFIGURATION ---
+VERSION = datetime.datetime.now().strftime("%Y%m%d") # Version ist das Datum
+ADDON_NAME = "MyFactoryAddon"
+BP_DIR = "BP"
+RP_DIR = "RP"
+OUTPUT_DIR = "Addon"
 
 def main():
-    log("🏭 Factory Start (Lang Fix & Polish)...", "INFO")
-    if not API_KEY: exit(1)
-    clean_up_old_files()
+    print(f"--- STARTING FACTORY BUILDER v{VERSION} ---")
     
-    issue_body = os.environ.get("ISSUE_BODY", "Erstelle ein neues cooles Item")
-    client = genai.Client(api_key=API_KEY)
+    # 1. CLEANUP (Veraltete Dateien entfernen, falls nötig)
+    # (Hier könnte man Code einfügen, um alte Builds zu löschen)
     
-    example_json = """
-    [
-        {
-            "path": "BP/items/my_item.json",
-            "content": {
-                "format_version": "1.21.0",
-                "minecraft:item": {
-                    "description": { "identifier": "factory:my_item" },
-                    "components": { "minecraft:damage": 10 }
-                }
-            }
-        },
-        {
-            "path": "BP/recipes/my_item.json",
-            "content": {
-                "format_version": "1.12.0",
-                "minecraft:recipe_shaped": {
-                    "description": { "identifier": "factory:my_item_recipe" },
-                    "result": { "item": "factory:my_item" }
-                }
-            }
-        }
-    ]
-    """
-
-    prompt = f"""
-    Du bist ein Minecraft Bedrock Experte (1.21.0).
-    AUFGABE: {issue_body}
-    REGELN: {load_rules()}
-    
-    WICHTIG:
-    1. Erstelle die nötigen JSON Dateien (Items UND Rezepte).
-    2. KEINE Scripts! Nur JSON.
-    3. Output MUSS exakt diesem JSON-Listen-Format entsprechen:
-    {example_json}
-    """
-    
-    try:
-        resp = client.models.generate_content(model=get_model(client), contents=prompt)
-        text = resp.text.replace("```json", "").replace("```", "").strip()
-        start, end = text.find('['), text.rfind(']') + 1
-        files = json.loads(text[start:end])
+    # 2. CONTENT PROCESSING (Der Inspektor)
+    print(">> Running Content Processor...")
+    logs = content_processor.process_all(BP_DIR, RP_DIR)
+    for log in logs:
+        print(f"   [LOG] {log}")
         
-        if len(files) == 0:
-            log("KI hat 0 Dateien geliefert!", "WARN")
-        
-        for item in files:
-            path = ""
-            content = {}
-
-            if "path" in item:
-                path = item["path"]
-                content = item["content"]
-            elif "minecraft:item" in item:
-                try:
-                    raw_id = item["minecraft:item"]["description"]["identifier"]
-                    name = raw_id.split(":")[-1]
-                    path = f"BP/items/{name}.json"
-                    content = item
-                    log(f"Pfad rekonstruiert: {path}", "FIX")
-                except:
-                    rnd = random.randint(1000,9999)
-                    path = f"BP/items/unknown_item_{rnd}.json"
-                    content = item
-                    log(f"Pfad unbekannt, speichere als: {path}", "WARN")
-            else:
-                log(f"Unbekanntes Datenformat. Überspringe.", "WARN")
-                continue
-
-            if not ALLOW_SCRIPTS:
-                if path.endswith(".js"): 
-                    log(f"Skript blockiert (Endung .js): {path}", "WARN")
-                    continue
-
-            # 🛑 LANG FILE BLOCKER
-            # Wenn die KI eine Sprachdatei schickt, ignorieren wir sie,
-            # weil wir sie in extract_info_and_fix sowieso sauber neu erstellen.
-            if path.endswith(".lang"):
-                log(f"Ignoriere KI-Sprachdatei (Auto-Generierung aktiv): {path}", "INFO")
-                continue
-            
-            full = os.path.join(REPO_ROOT, path)
-            os.makedirs(os.path.dirname(full), exist_ok=True)
-            content = extract_info_and_fix(path, content)
-            append_code_to_log(path, content)
-            
-            if "item_texture.json" in path and os.path.exists(full):
-                try: 
-                    with open(full) as f: 
-                        ex = json.load(f)
-                        ex.setdefault("texture_data", {}).update(content.get("texture_data", {}))
-                        content = ex
-                except: pass
-
-            with open(full, 'w') as f: json.dump(content, f, indent=4)
-            log(f"Datei erstellt: {path}", "SUCCESS")
-
-        ver = manage_manifests()
-        create_mcaddon("MeinAddon", ver)
-
-    except Exception as e:
-        log(f"CRASH: {e}", "ERROR")
-        exit(1)
+    # 3. PACKAGING (Der Logistiker)
+    print(">> Packaging Add-On...")
+    file_name = packager.create_mcaddon(BP_DIR, RP_DIR, OUTPUT_DIR, ADDON_NAME, VERSION)
+    
+    print(f"--- SUCCESS! Created: {file_name} ---")
+    
+    # Log Datei schreiben (für den User im ZIP oder Repo)
+    with open(os.path.join(OUTPUT_DIR, "build_log.txt"), "w") as f:
+        f.write(f"Build Date: {VERSION}\n")
+        f.write("Logs:\n")
+        f.write("\n".join(logs))
 
 if __name__ == "__main__":
     main()
