@@ -16,7 +16,7 @@ DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
 BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "Addon")
-ALLOW_SCRIPTS = False  # Bleibt False für Sicherheit
+ALLOW_SCRIPTS = False 
 
 # LOG SYSTEM
 summary_log = []     
@@ -98,6 +98,7 @@ def update_language_file(item_id, display_name):
 
 def extract_info_and_fix(file_path, content):
     try:
+        # --- FIX FÜR ITEMS ---
         if "minecraft:item" in content:
             item_data = content["minecraft:item"]
             desc = item_data.get("description", {})
@@ -139,7 +140,7 @@ def extract_info_and_fix(file_path, content):
                 if isinstance(display, str): comp["minecraft:display_name"] = {"value": display}; val = display
                 if val: update_language_file(new_id, val)
             
-            # 5. FIX: Enchantable Slot
+            # 5. Enchantable Slot
             enchant = comp.get("minecraft:enchantable")
             if enchant:
                 if "slot" not in enchant:
@@ -153,6 +154,22 @@ def extract_info_and_fix(file_path, content):
 
             content["minecraft:item"] = item_data
             return content
+
+        # --- NEU: FIX FÜR REZEPTE ---
+        elif "minecraft:recipe_shaped" in content:
+            recipe = content["minecraft:recipe_shaped"]
+            if "result" in recipe:
+                if "item" in recipe["result"]:
+                    orig_res = recipe["result"]["item"]
+                    # Wir zwingen das Ergebnis auch auf 'factory:'
+                    short_res = orig_res.split(":")[-1]
+                    new_res = f"factory:{short_res}"
+                    if orig_res != new_res:
+                        recipe["result"]["item"] = new_res
+                        log(f"Rezept-Ergebnis korrigiert: {orig_res} -> {new_res}", "FIX")
+            content["minecraft:recipe_shaped"] = recipe
+            return content
+            
     except Exception as e:
         log(f"Fehler bei Fix: {e}", "ERROR")
     return content
@@ -232,7 +249,6 @@ def create_mcaddon(name, version):
 
     zip_path = os.path.join(OUTPUT_DIR, filename)
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # Ordner packen
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
                 for root, _, files in os.walk(folder):
@@ -240,17 +256,15 @@ def create_mcaddon(name, version):
                         abs = os.path.join(root, file)
                         rel = os.path.join(os.path.basename(folder), os.path.relpath(abs, folder))
                         zf.write(abs, rel)
-        # Log versteckt packen
         zf.write(full_log_path, "BP/build_log.txt")
 
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Dynamic Mode Activated)...", "INFO")
+    log("🏭 Factory Start (Dynamic + Recipe Fix)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
-    # HIER IST DIE ÄNDERUNG: Wir hören wieder auf dich!
     issue_body = os.environ.get("ISSUE_BODY", "Erstelle ein neues cooles Item")
     client = genai.Client(api_key=API_KEY)
     
@@ -265,6 +279,16 @@ def main():
                     "components": { "minecraft:damage": 10 }
                 }
             }
+        },
+        {
+            "path": "BP/recipes/my_item.json",
+            "content": {
+                "format_version": "1.12.0",
+                "minecraft:recipe_shaped": {
+                    "description": { "identifier": "factory:my_item_recipe" },
+                    "result": { "item": "factory:my_item" }
+                }
+            }
         }
     ]
     """
@@ -275,7 +299,7 @@ def main():
     REGELN: {load_rules()}
     
     WICHTIG:
-    1. Erstelle die nötigen JSON Dateien für das gewünschte Item.
+    1. Erstelle die nötigen JSON Dateien (Items UND Rezepte).
     2. KEINE Scripts! Nur JSON.
     3. Output MUSS exakt diesem JSON-Listen-Format entsprechen:
     {example_json}
