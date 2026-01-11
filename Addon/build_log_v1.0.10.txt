@@ -1,16 +1,10 @@
 --- VERLAUF (SUMMARY) ---
-[11:59:10] ℹ️ 🏭 Factory Start (Data Detective Mode)...
-[11:59:10] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ⚠️ Unbekanntes Datenformat. Überspringe.
-[11:59:25] ℹ️ Manifest Update: V [1, 0, 9]
-[11:59:25] ℹ️ --- ABSCHLUSS ---
-[11:59:25] ⚠️ Build Warnungen: 7 | Fehler: 0
+[12:03:55] ℹ️ 🏭 Factory Start (Template & Tolerance Mode)...
+[12:03:55] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
+[12:04:06] ⚠️ Skript blockiert: BP/items/obsidian_sword.json
+[12:04:06] ℹ️ Manifest Update: V [1, 0, 10]
+[12:04:06] ℹ️ --- ABSCHLUSS ---
+[12:04:06] ⚠️ Build Warnungen: 1 | Fehler: 0
 
 
 ===========================================
@@ -50,7 +44,7 @@ RP/
     "version": [
       1,
       0,
-      9
+      10
     ],
     "min_engine_version": [
       1,
@@ -61,11 +55,11 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "a2ea0c10-7c5d-4e0b-afd0-0e04f9c750de",
+      "uuid": "b8fd95e3-601a-477e-b615-95e5c9b7afc7",
       "version": [
         1,
         0,
-        9
+        10
       ]
     }
   ]
@@ -83,7 +77,7 @@ RP/
     "version": [
       1,
       0,
-      9
+      10
     ],
     "min_engine_version": [
       1,
@@ -94,11 +88,11 @@ RP/
   "modules": [
     {
       "type": "data",
-      "uuid": "2b192758-452c-41e5-a616-5fd18b50b04e",
+      "uuid": "0ad97cd5-b624-4418-989e-16728e8e4f0c",
       "version": [
         1,
         0,
-        9
+        10
       ]
     }
   ],
@@ -108,7 +102,7 @@ RP/
       "version": [
         1,
         0,
-        9
+        10
       ]
     }
   ]
