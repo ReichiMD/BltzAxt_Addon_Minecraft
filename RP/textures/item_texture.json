@@ -2,7 +2,7 @@
     "resource_pack_name": "test",
     "texture_name": "atlas.items",
     "texture_data": {
-        "test:god_sword": {
+        "factory:god_sword": {
             "textures": "textures/items/diamond_sword"
         },
         "obsidian_sword": {
