@@ -224,23 +224,17 @@ def create_mcaddon(name, version):
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Crash-Proof + Hardcoded Item)...", "INFO")
+    log("🏭 Factory Start (Data Detective Mode)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
     issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden."
-    
     client = genai.Client(api_key=API_KEY)
     
     prompt = f"""
     Du bist ein Minecraft Bedrock Experte (1.21.0).
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
-    
-    WICHTIG:
-    1. Erstelle EINE Datei in 'BP/items/obsidian_sword.json'.
-    2. KEINE Scripts! Nur JSON.
-    3. Nutze 'minecraft:damage': 10.
     
     Output NUR als JSON-Liste.
     """
@@ -255,18 +249,35 @@ def main():
             log("KI hat 0 Dateien geliefert! CRITICAL ERROR.", "ERROR")
         
         for item in files:
-            # SAFETY CHECK: Hat das Item überhaupt einen Pfad?
-            if "path" not in item:
-                log("Warnung: Eintrag ohne Pfad gefunden, überspringe...", "WARN")
+            path = ""
+            content = {}
+
+            # 🕵️‍♂️ DETEKTIV-MODUS: Pfad erraten, wenn er fehlt
+            if "path" in item:
+                path = item["path"]
+                content = item["content"]
+            elif "minecraft:item" in item:
+                # Aha! Die KI hat direkt das Item geschickt ohne "path" Wrapper
+                content = item
+                # Wir suchen den Identifier um den Pfad zu bauen
+                try:
+                    raw_id = content["minecraft:item"]["description"]["identifier"]
+                    name = raw_id.split(":")[-1]
+                    path = f"BP/items/{name}.json"
+                    log(f"Pfad rekonstruiert aus Inhalt: {path}", "FIX")
+                except:
+                    log("Konnte Pfad nicht erraten. Überspringe.", "WARN")
+                    continue
+            else:
+                log("Unbekanntes Datenformat. Überspringe.", "WARN")
                 continue
-                
-            path = item['path']
+
             if not ALLOW_SCRIPTS and (".js" in path or "scripts" in path):
                 log(f"Skript blockiert: {path}", "WARN"); continue
             
             full = os.path.join(REPO_ROOT, path)
             os.makedirs(os.path.dirname(full), exist_ok=True)
-            content = extract_info_and_fix(path, item['content'])
+            content = extract_info_and_fix(path, content)
             append_code_to_log(path, content)
             
             # Merge Texture Defs
@@ -290,4 +301,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+            
