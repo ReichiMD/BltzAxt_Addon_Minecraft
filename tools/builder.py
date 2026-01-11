@@ -116,17 +116,21 @@ def extract_info_and_fix(file_path, content):
                 desc["identifier"] = new_id
                 log(f"ID korrigiert: {orig_id} -> {new_id}", "FIX")
 
-            # 3. Creative Menu Force & CLEANUP (Wichtig für Warnung!)
-            # Entferne veraltetes 'category' Feld, falls vorhanden
+            # 3. Creative Menu Force & CLEANUP
             if "category" in desc:
                 del desc["category"]
-                log("Veraltetes Feld 'category' entfernt.", "FIX")
-            
             desc["menu_category"] = {"category": "equipment", "group": "itemGroup.name.sword"}
             item_data["description"] = desc
 
-            # 4. Icon & Name
+            # 4. Icon & Name Check
+            # FIX: Icon darf nicht null sein!
             icon = comp.get("minecraft:icon")
+            if icon is None:
+                # Fallback: Wir nehmen den Namen des Items als Icon-Namen
+                icon = short
+                comp["minecraft:icon"] = icon
+                log(f"Icon war null, setze auf: {icon}", "FIX")
+            
             if icon:
                 tname = icon if isinstance(icon, str) else icon.get("texture")
                 if isinstance(icon, dict): comp["minecraft:icon"] = tname
@@ -138,6 +142,23 @@ def extract_info_and_fix(file_path, content):
                 if isinstance(display, str): comp["minecraft:display_name"] = {"value": display}; val = display
                 if val: update_language_file(new_id, val)
             
+            # 5. FIX: Enchantable Slot
+            # Wenn enchantable da ist, MUSS 'slot' da sein.
+            enchant = comp.get("minecraft:enchantable")
+            if enchant:
+                if "slot" not in enchant:
+                    # Slot erraten
+                    if "sword" in new_id: enchant["slot"] = "sword"
+                    elif "pickaxe" in new_id: enchant["slot"] = "pickaxe"
+                    elif "axe" in new_id: enchant["slot"] = "axe"
+                    elif "bow" in new_id: enchant["slot"] = "bow"
+                    else: enchant["slot"] = "sword" # Default
+                    log(f"Enchantable Slot hinzugefügt: {enchant['slot']}", "FIX")
+                
+                # Cleanup falsche Keys von der KI
+                if "item_tag" in enchant: 
+                    del enchant["item_tag"]
+
             content["minecraft:item"] = item_data
             return content
     except Exception as e:
@@ -215,7 +236,6 @@ def create_mcaddon(name, version):
 
     full_content = ["--- VERLAUF (SUMMARY) ---"] + summary_log + [generate_ascii_tree(BP_PATH) + generate_ascii_tree(RP_PATH)] + ["\n💻 CODE DUMP"] + appendix_log
     
-    # 1. Log im Ordner speichern
     with open(full_log_path, "w", encoding='utf-8') as f: f.write("\n".join(full_content))
 
     zip_path = os.path.join(OUTPUT_DIR, filename)
@@ -229,14 +249,13 @@ def create_mcaddon(name, version):
                         rel = os.path.join(os.path.basename(folder), os.path.relpath(abs, folder))
                         zf.write(abs, rel)
         
-        # 2. Log-Datei AUCH in das Zip packen, aber VERSTECKT im BP Ordner
-        # Damit meckert Minecraft nicht über "ungültige ZIP", aber du hast das Log dabei.
+        # Log versteckt packen
         zf.write(full_log_path, "BP/build_log.txt")
 
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Polish & Shine)...", "INFO")
+    log("🏭 Factory Start (Logic Fix: Enchant & Icon)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
@@ -251,7 +270,10 @@ def main():
                 "format_version": "1.21.0",
                 "minecraft:item": {
                     "description": { "identifier": "factory:my_sword" },
-                    "components": { "minecraft:damage": 10 }
+                    "components": { 
+                        "minecraft:damage": 10,
+                        "minecraft:icon": "my_sword_icon"
+                    }
                 }
             }
         }
