@@ -1,12 +1,11 @@
 --- VERLAUF (SUMMARY) ---
-[12:18:27] ℹ️ 🏭 Factory Start (Polish & Shine)...
-[12:18:27] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
-[12:18:36] 🔧 ID korrigiert: obsidian_items:obsidian_sword -> factory:obsidian_sword
-[12:18:36] 🔧 Veraltetes Feld 'category' entfernt.
-[12:18:36] ✅ Datei erstellt: BP/items/obsidian_sword.json
-[12:18:36] ℹ️ Manifest Update: V [1, 0, 12]
-[12:18:36] ℹ️ --- ABSCHLUSS ---
-[12:18:36] ✅ Build Sauber!
+[12:29:19] ℹ️ 🏭 Factory Start (Logic Fix: Enchant & Icon)...
+[12:29:19] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
+[12:29:40] 🔧 ID korrigiert: myaddon:obsidian_sword -> factory:obsidian_sword
+[12:29:40] ✅ Datei erstellt: BP/items/obsidian_sword.json
+[12:29:40] ℹ️ Manifest Update: V [1, 0, 13]
+[12:29:40] ℹ️ --- ABSCHLUSS ---
+[12:29:40] ✅ Build Sauber!
 
 
 ===========================================
@@ -37,6 +36,25 @@ RP/
 💻 CODE DUMP
 
 ===========================================
+📄 DATEI: RP/textures/item_texture.json
+===========================================
+{
+  "resource_pack_name": "test",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "test:god_sword": {
+      "textures": "textures/items/diamond_sword"
+    },
+    "obsidian_sword": {
+      "textures": "textures/items/obsidian_sword"
+    },
+    "obsidian_sword_icon": {
+      "textures": "textures/items/obsidian_sword_icon"
+    }
+  }
+}
+
+===========================================
 📄 DATEI: BP/items/obsidian_sword.json
 ===========================================
 {
@@ -53,14 +71,32 @@ RP/
       "minecraft:display_name": {
         "value": "Obsidian Schwert"
       },
-      "minecraft:icon": null,
+      "minecraft:icon": "obsidian_sword_icon",
       "minecraft:max_stack_size": 1,
       "minecraft:hand_equipped": true,
       "minecraft:durability": {
-        "max_durability": 2000,
+        "max_durability": 2500,
         "damage_chance": {
-          "min": 0.6,
-          "max": 1.0
+          "min": 60,
+          "max": 100
+        }
+      },
+      "minecraft:enchantable": {
+        "value": 5,
+        "slot": "sword"
+      },
+      "minecraft:menu_category": {
+        "group": "itemGroup.name.sword",
+        "category": "equipment"
+      },
+      "minecraft:damage": 10,
+      "minecraft:mining_speed": {
+        "value": 1,
+        "on_dig": {
+          "condition": "query.block_property('minecraft:material_instances','block_material') == 'web'",
+          "event": {
+            "damage": 1
+          }
         }
       },
       "minecraft:repairable": {
@@ -69,18 +105,9 @@ RP/
             "items": [
               "minecraft:obsidian"
             ],
-            "repair_amount": "query.max_durability * 0.25"
+            "repair_amount": "query.max_durability"
           }
         ]
-      },
-      "minecraft:damage": 10,
-      "minecraft:enchantable": {
-        "value": 15,
-        "item_tag": "minecraft:item_tag.sword"
-      },
-      "minecraft:menu_category": {
-        "category": "equipment",
-        "group": "itemGroup.name.sword"
       }
     }
   }
@@ -98,7 +125,7 @@ RP/
     "version": [
       1,
       0,
-      12
+      13
     ],
     "min_engine_version": [
       1,
@@ -109,11 +136,11 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "2a5eafa2-ddb4-477f-a19a-d2d0f96df5ef",
+      "uuid": "c211575d-04bf-402f-98ca-0d6f3f8f7a62",
       "version": [
         1,
         0,
-        12
+        13
       ]
     }
   ]
@@ -131,7 +158,7 @@ RP/
     "version": [
       1,
       0,
-      12
+      13
     ],
     "min_engine_version": [
       1,
@@ -142,11 +169,11 @@ RP/
   "modules": [
     {
       "type": "data",
-      "uuid": "0357279d-051d-41fb-b7db-18d1a7562a6a",
+      "uuid": "a4322156-790c-4433-98bd-cf21259a3f3e",
       "version": [
         1,
         0,
-        12
+        13
       ]
     }
   ],
@@ -156,7 +183,7 @@ RP/
       "version": [
         1,
         0,
-        12
+        13
       ]
     }
   ]

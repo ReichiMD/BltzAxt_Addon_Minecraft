@@ -12,14 +12,32 @@
             "minecraft:display_name": {
                 "value": "Obsidian Schwert"
             },
-            "minecraft:icon": null,
+            "minecraft:icon": "obsidian_sword_icon",
             "minecraft:max_stack_size": 1,
             "minecraft:hand_equipped": true,
             "minecraft:durability": {
-                "max_durability": 2000,
+                "max_durability": 2500,
                 "damage_chance": {
-                    "min": 0.6,
-                    "max": 1.0
+                    "min": 60,
+                    "max": 100
+                }
+            },
+            "minecraft:enchantable": {
+                "value": 5,
+                "slot": "sword"
+            },
+            "minecraft:menu_category": {
+                "group": "itemGroup.name.sword",
+                "category": "equipment"
+            },
+            "minecraft:damage": 10,
+            "minecraft:mining_speed": {
+                "value": 1,
+                "on_dig": {
+                    "condition": "query.block_property('minecraft:material_instances','block_material') == 'web'",
+                    "event": {
+                        "damage": 1
+                    }
                 }
             },
             "minecraft:repairable": {
@@ -28,18 +46,9 @@
                         "items": [
                             "minecraft:obsidian"
                         ],
-                        "repair_amount": "query.max_durability * 0.25"
+                        "repair_amount": "query.max_durability"
                     }
                 ]
-            },
-            "minecraft:damage": 10,
-            "minecraft:enchantable": {
-                "value": 15,
-                "item_tag": "minecraft:item_tag.sword"
-            },
-            "minecraft:menu_category": {
-                "category": "equipment",
-                "group": "itemGroup.name.sword"
             }
         }
     }
