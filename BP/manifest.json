@@ -3,11 +3,11 @@
     "header": {
         "name": "Factory BP",
         "description": "Logic",
-        "uuid": "9c4a8f3b-5e3d-4c1d-8a2b-1f9e7c6d5a0b",
+        "uuid": "90b1e332-902e-49b0-9519-74d6c412f71f",
         "version": [
             1,
             0,
-            13
+            1
         ],
         "min_engine_version": [
             1,
@@ -18,21 +18,21 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "a4322156-790c-4433-98bd-cf21259a3f3e",
+            "uuid": "d26eae0d-9fd7-4120-a3e8-94ca9df028ec",
             "version": [
                 1,
                 0,
-                13
+                1
             ]
         }
     ],
     "dependencies": [
         {
-            "uuid": "2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01",
+            "uuid": "0121a97d-606c-482a-a2ae-c20e2e5f396e",
             "version": [
                 1,
                 0,
-                13
+                1
             ]
         }
     ]
