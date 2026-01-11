@@ -56,7 +56,7 @@ def update_language_file(item_id, display_name):
         print(f"📝 Name gespeichert: {display_name}")
 
 def extract_info_and_fix(file_path, content):
-    """Repariert Item-Definitionen (Kreativ-Menü & Version)."""
+    """Repariert Item-Definitionen AGGRESSIV."""
     try:
         if "minecraft:item" in content:
             # FIX 1: Version erzwingen
@@ -65,19 +65,23 @@ def extract_info_and_fix(file_path, content):
             item_data = content["minecraft:item"]
             desc = item_data.get("description", {})
             comp = item_data.get("components", {})
-            item_id = desc.get("identifier", "")
+            item_id = desc.get("identifier", "unbekannt")
 
-            # FIX 2: Kreativ-Menü Eintrag erzwingen (Sonst ist es unsichtbar!)
-            if "menu_category" not in desc:
-                print(f"🔨 FIX: Füge 'menu_category' hinzu für {item_id}")
-                desc["menu_category"] = {
-                    "category": "equipment",
-                    "group": "itemGroup.name.sword" 
-                }
-                # Schreibe zurück in content
-                item_data["description"] = desc
+            # FIX 2: Altes Gerümpel löschen (creative_category stört in 1.21)
+            if "minecraft:creative_category" in comp:
+                del comp["minecraft:creative_category"]
+                print(f"🧹 Veraltete 'creative_category' entfernt aus {item_id}")
 
-            # FIX 3: Icon Syntax
+            # FIX 3: Kreativ-Menü Eintrag ERZWINGEN (Überschreiben!)
+            # Wir fragen nicht mehr "if not in desc", wir machen es einfach.
+            desc["menu_category"] = {
+                "category": "equipment",
+                "group": "itemGroup.name.sword" 
+            }
+            item_data["description"] = desc
+            print(f"🔨 Menu-Kategorie erzwungen für: {item_id}")
+
+            # FIX 4: Icon Syntax
             icon = comp.get("minecraft:icon")
             if icon:
                 tex_name = icon if isinstance(icon, str) else icon.get("texture")
@@ -85,7 +89,7 @@ def extract_info_and_fix(file_path, content):
                     comp["minecraft:icon"] = tex_name
                 if tex_name: register_texture_path(tex_name)
 
-            # FIX 4: Name
+            # FIX 5: Name
             display = comp.get("minecraft:display_name")
             if display:
                 name_val = display.get("value") if isinstance(display, dict) else display
@@ -94,7 +98,6 @@ def extract_info_and_fix(file_path, content):
                      name_val = display
                 if name_val: update_language_file(item_id, name_val)
             
-            # Update item_data zurück in content (Referenz)
             content["minecraft:item"] = item_data
             return content
 
@@ -118,17 +121,14 @@ def get_smart_model_name(client):
     except: return "gemini-1.5-flash"
 
 def manage_manifests():
-    """
-    Synchronisiert Manifeste. 
-    WICHTIG: RP UUID wird zuerst festgelegt und dann ZWINGEND in BP eingetragen.
-    """
+    """Synchronisiert Manifeste und verlinkt sie hart."""
     print("🔧 CHECK: Synchronisiere Manifeste...")
     rp_path = os.path.join(RP_PATH, "manifest.json")
     bp_path = os.path.join(BP_PATH, "manifest.json")
     os.makedirs(RP_PATH, exist_ok=True)
     os.makedirs(BP_PATH, exist_ok=True)
 
-    # 1. Resource Pack (RP) behandeln
+    # 1. RP (Resource Pack)
     rp_uuid = str(uuid.uuid4())
     rp_version = [1, 0, 0]
     
@@ -138,9 +138,11 @@ def manage_manifests():
                 d = json.load(f)
                 rp_uuid = d['header']['uuid']
                 rp_version = d['header']['version']
-                rp_version[2] += 1 # Patch erhöhen
+                rp_version[2] += 1
         except: pass
     
+    print(f"📄 RP UUID: {rp_uuid} | Version: {rp_version}")
+
     rp_data = {
         "format_version": 2,
         "header": {
@@ -154,7 +156,7 @@ def manage_manifests():
     }
     with open(rp_path, 'w') as f: json.dump(rp_data, f, indent=4)
 
-    # 2. Behavior Pack (BP) behandeln
+    # 2. BP (Behavior Pack)
     bp_uuid = str(uuid.uuid4())
     if os.path.exists(bp_path):
         try:
@@ -163,7 +165,10 @@ def manage_manifests():
                 bp_uuid = d['header']['uuid']
         except: pass
 
-    # WICHTIG: Dependency muss EXAKT die RP UUID und Version haben
+    print(f"📄 BP UUID: {bp_uuid} | Dependency auf RP: {rp_uuid}")
+
+    # FIX: Dependency Version auf [1,0,0] setzen, um "Strict Version" Probleme zu vermeiden.
+    # Solange RP >= 1.0.0 ist, wird es geladen.
     bp_data = {
         "format_version": 2,
         "header": {
@@ -174,7 +179,7 @@ def manage_manifests():
             "min_engine_version": [1, 21, 0]
         },
         "modules": [{"type": "data", "uuid": str(uuid.uuid4()), "version": rp_version}],
-        "dependencies": [{"uuid": rp_uuid, "version": rp_version}]
+        "dependencies": [{"uuid": rp_uuid, "version": [1, 0, 0]}] 
     }
     with open(bp_path, 'w') as f: json.dump(bp_data, f, indent=4)
         
@@ -200,7 +205,7 @@ def create_mcaddon(name, version):
     print(f"📦 Add-On erstellt: {filename}")
 
 def main():
-    print("🏭 Factory startet (Creative Menu Fix)...")
+    print("🏭 Factory startet (Forced Visibility & Link)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -235,7 +240,7 @@ def main():
             
             content = item['content']
             
-            # FIX: Fügt menu_category hinzu, wenn es fehlt
+            # FIX: Menu Category & Cleanup
             content = extract_info_and_fix(path, content)
             
             if "item_texture.json" in path and os.path.exists(full_path):
