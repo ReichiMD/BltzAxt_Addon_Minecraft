@@ -11,6 +11,7 @@ REPO_ROOT = "."
 DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
 BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
+OUTPUT_DIR = os.path.join(REPO_ROOT, "Addon") # Hier landen die fertigen Dateien
 
 # GLOBALES LOGBUCH
 build_log = []
@@ -74,7 +75,6 @@ def extract_info_and_fix(file_path, content):
             
             # FIX 2: Namespace Enforcer (ID Umbenennung)
             original_id = desc.get("identifier", "unknown:item")
-            # Wir nehmen alles nach dem Doppelpunkt und setzen 'factory:' davor
             short_name = original_id.split(":")[-1]
             new_id = f"factory:{short_name}"
             
@@ -194,20 +194,37 @@ def manage_manifests():
 def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
+    log_filename = f"build_log_v{v_str}.txt"
     
-    # Aufräumen
+    # Ordner 'Addon' vorbereiten
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    # 1. Alte Dateien im Root löschen (Aufräumen)
     for f in os.listdir(REPO_ROOT):
         if f.endswith(".mcaddon") and name in f:
             try: os.remove(f)
             except: pass
 
-    # Log-Datei schreiben
-    log_filename = "debug_log.txt"
-    with open(log_filename, "w") as f:
+    # 2. Alte Dateien im Addon-Ordner löschen (Damit nur das Neueste da ist)
+    for f in os.listdir(OUTPUT_DIR):
+        file_path = os.path.join(OUTPUT_DIR, f)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(f"Fehler beim Aufräumen von {OUTPUT_DIR}: {e}")
+
+    # Pfade für neue Dateien
+    full_mcaddon_path = os.path.join(OUTPUT_DIR, filename)
+    full_log_path = os.path.join(OUTPUT_DIR, log_filename)
+
+    # Log-Datei in den Ordner schreiben
+    with open(full_log_path, "w") as f:
         f.write("\n".join(build_log))
 
-    with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # Ordner packen
+    # Add-On Packen
+    with zipfile.ZipFile(full_mcaddon_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Ordner BP und RP packen
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
                 folder_name = os.path.basename(folder)
@@ -217,13 +234,15 @@ def create_mcaddon(name, version):
                         rel_path = os.path.join(folder_name, os.path.relpath(abs_path, folder))
                         zf.write(abs_path, rel_path)
         
-        # Log-Datei mit ins Archiv packen!
-        zf.write(log_filename, log_filename)
+        # Log-Datei auch IN das Zip packen (für Handy-User bequem)
+        zf.write(full_log_path, log_filename)
         
-    log(f"📦 Add-On erstellt: {filename} (inkl. debug_log.txt)")
+    log(f"📦 FERTIG! Dateien gespeichert in Ordner: {OUTPUT_DIR}")
+    log(f"   - Addon: {filename}")
+    log(f"   - Log:   {log_filename}")
 
 def main():
-    log("🏭 Factory startet (Namespace Enforcer)...")
+    log("🏭 Factory startet (Organizer Mode)...")
     if not API_KEY: exit(1)
     
     clean_up_old_files()
@@ -258,7 +277,7 @@ def main():
             
             content = item['content']
             
-            # FIX: ID, Version, Menu, Name
+            # FIX & ENFORCE
             content = extract_info_and_fix(path, content)
             
             if "item_texture.json" in path and os.path.exists(full_path):
@@ -283,4 +302,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+                    
