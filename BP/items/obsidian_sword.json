@@ -13,10 +13,10 @@
                 "value": "Obsidian Sword"
             },
             "minecraft:icon": "obsidian_sword",
-            "minecraft:hand_equipped": true,
             "minecraft:max_stack_size": 1,
+            "minecraft:hand_equipped": true,
             "minecraft:durability": {
-                "max_durability": 1500,
+                "max_durability": 2000,
                 "damage_chance": {
                     "min": 60,
                     "max": 100
@@ -27,27 +27,26 @@
                 "value": 15,
                 "slot": "sword"
             },
-            "minecraft:weapon": {
-                "on_hit_block": {
-                    "damage": 0,
-                    "vibration": {
-                        "falloff": 0.5,
-                        "intensity": 0.2
-                    }
-                },
-                "on_not_hit_block": {
-                    "damage": 0,
-                    "vibration": {
-                        "falloff": 0.5,
-                        "intensity": 0.2
-                    }
-                }
-            },
             "minecraft:creative_category": {
-                "parent": "itemGroup.name.sword"
+                "group": "itemGroup.name.sword",
+                "category": "equipment"
             },
             "minecraft:foil": false,
-            "minecraft:allow_offhand": false
+            "minecraft:tags": {
+                "tags": [
+                    "minecraft:item_tag.sword"
+                ]
+            },
+            "minecraft:repairable": {
+                "repair_items": [
+                    {
+                        "items": [
+                            "minecraft:obsidian"
+                        ],
+                        "repair_amount": 0.5
+                    }
+                ]
+            }
         }
     }
 }
