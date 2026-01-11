@@ -1,45 +1,35 @@
+Build Date: 15:53:07
 --- VERLAUF (SUMMARY) ---
-[12:59:21] ℹ️ 🏭 Factory Start (Lang Fix & Polish)...
-[12:59:21] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
-[12:59:48] ✅ Datei erstellt: BP/manifest.json
-[12:59:48] ✅ Datei erstellt: RP/manifest.json
-[12:59:48] 🔧 ID korrigiert: obsidian:obsidian_sword -> factory:obsidian_sword
-[12:59:48] ✅ Spracheintrag: 'Obsidian Sword'
-[12:59:48] ✅ Datei erstellt: BP/items/obsidian_sword.json
-[12:59:48] 🔧 Rezept-Ergebnis korrigiert: obsidian:obsidian_sword -> factory:obsidian_sword
-[12:59:48] ✅ Datei erstellt: BP/recipes/obsidian_sword_recipe.json
-[12:59:48] ✅ Datei erstellt: RP/textures/item_texture.json
-[12:59:48] ℹ️ Ignoriere KI-Sprachdatei (Auto-Generierung aktiv): RP/texts/en_US.lang
-[12:59:48] ℹ️ Manifest Update: V [1, 0, 1]
-[12:59:48] ℹ️ --- ABSCHLUSS ---
-[12:59:48] ✅ Build Sauber!
-
+[15:53:07] ℹ️ 🏭 Factory Start (Version 1.0.1)...
+✅ Datei geprüft: obsidian_sword_recipe.json
+✅ Datei geprüft: obsidian_sword.json
+✅ Datei geprüft: item_texture.json
+✅ Spracheintrag: 'Obsidian Sword'
+✅ Manifest Update: BP v1.0.1
+✅ Manifest Update: RP v1.0.1
+📦 .mcaddon gepackt: MeinAddon_v1.0.1.mcaddon
+[15:53:07] ✅ Build Sauber!
 
 ===========================================
 🌳 ORDNER STRUKTUR
 ===========================================
 Addon/
 BP/
-    manifest.json
-    recipes/
-        obsidian_sword_recipe.json
-    items/
-        obsidian_sword.json
+├── items
+│   └── obsidian_sword.json
+├── manifest.json
+└── recipes
+    └── obsidian_sword_recipe.json
 
-
-===========================================
-🌳 ORDNER STRUKTUR
-===========================================
-Addon/
 RP/
-    manifest.json
-    texts/
-        en_US.lang
-        de_DE.lang
-    textures/
-        item_texture.json
-        items/
-            obsidian_sword.png
+├── manifest.json
+├── texts
+│   ├── de_DE.lang
+│   └── en_US.lang
+└── textures
+    ├── item_texture.json
+    └── items
+        └── obsidian_sword.png
 
 
 💻 CODE DUMP
@@ -48,100 +38,75 @@ RP/
 📄 DATEI: BP/manifest.json
 ===========================================
 {
-  "format_version": 2,
-  "header": {
-    "name": "Obsidian Sword BP",
-    "description": "Behavior Pack for the Obsidian Sword item.",
-    "uuid": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "version": [
-      1,
-      0,
-      0
+    "format_version": 2,
+    "header": {
+        "name": "Factory BP",
+        "description": "Auto-generated v1.0.1",
+        "uuid": "4a9dd9c1-bb28-49b6-aa7c-e0a05e7d7030",
+        "version": [
+            1,
+            0,
+            1
+        ],
+        "min_engine_version": [
+            1,
+            21,
+            0
+        ]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "c4c87cfa-c664-4326-bd6f-1f44aa1d2478",
+            "version": [
+                1,
+                0,
+                1
+            ]
+        }
     ],
-    "min_engine_version": [
-      1,
-      21,
-      0
+    "dependencies": [
+        {
+            "uuid": "2792cdb8-d493-4c0c-9e47-08bc8f3781bb",
+            "version": [
+                1,
+                0,
+                1
+            ]
+        }
     ]
-  },
-  "modules": [
-    {
-      "type": "data",
-      "uuid": "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
-      "version": [
-        1,
-        0,
-        0
-      ]
-    }
-  ],
-  "dependencies": [
-    {
-      "uuid": "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
-      "version": [
-        1,
-        0,
-        0
-      ]
-    }
-  ]
 }
 
 ===========================================
-📄 DATEI: RP/manifest.json
+📄 DATEI: BP/recipes/obsidian_sword_recipe.json
 ===========================================
 {
-  "format_version": 2,
-  "header": {
-    "name": "Obsidian Sword RP",
-    "description": "Resource Pack for the Obsidian Sword item and textures.",
-    "uuid": "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
-    "version": [
-      1,
-      0,
-      0
+  "format_version": "1.12.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "factory:obsidian_sword_recipe"
+    },
+    "tags": [
+      "crafting_table"
     ],
-    "min_engine_version": [
-      1,
-      21,
-      0
-    ]
-  },
-  "modules": [
-    {
-      "type": "resources",
-      "uuid": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
-      "version": [
-        1,
-        0,
-        0
-      ]
-    }
-  ]
-}
-
-===========================================
-📄 DATEI: RP/textures/item_texture.json
-===========================================
-{
-  "resource_pack_name": "test",
-  "texture_name": "atlas.items",
-  "texture_data": {
-    "test:god_sword": {
-      "textures": "textures/items/diamond_sword"
+    "pattern": [
+      "#",
+      "#",
+      "X"
+    ],
+    "key": {
+      "#": {
+        "item": "minecraft:obsidian"
+      },
+      "X": {
+        "item": "minecraft:stick"
+      }
     },
-    "obsidian_sword": {
-      "textures": "textures/items/obsidian_sword"
-    },
-    "obsidian_sword_icon": {
-      "textures": "textures/items/obsidian_sword_icon"
+    "result": {
+      "item": "factory:obsidian_sword_recipe"
     }
   }
 }
-
-[LANG]
-item.factory:obsidian_sword.name=Obsidian Sword
-
 
 ===========================================
 📄 DATEI: BP/items/obsidian_sword.json
@@ -200,120 +165,63 @@ item.factory:obsidian_sword.name=Obsidian Sword
 }
 
 ===========================================
-📄 DATEI: BP/recipes/obsidian_sword_recipe.json
+📄 DATEI: RP/manifest.json
 ===========================================
 {
-  "format_version": "1.12.0",
-  "minecraft:recipe_shaped": {
-    "description": {
-      "identifier": "obsidian:obsidian_sword_recipe"
+    "format_version": 2,
+    "header": {
+        "name": "Factory RP",
+        "description": "Auto-generated v1.0.1",
+        "uuid": "2792cdb8-d493-4c0c-9e47-08bc8f3781bb",
+        "version": [
+            1,
+            0,
+            1
+        ],
+        "min_engine_version": [
+            1,
+            21,
+            0
+        ]
     },
-    "tags": [
-      "crafting_table"
-    ],
-    "pattern": [
-      "#",
-      "#",
-      "X"
-    ],
-    "key": {
-      "#": {
-        "item": "minecraft:obsidian"
-      },
-      "X": {
-        "item": "minecraft:stick"
-      }
-    },
-    "result": {
-      "item": "factory:obsidian_sword"
-    }
-  }
+    "modules": [
+        {
+            "type": "resources",
+            "uuid": "fe3341dd-5070-4538-979e-4f70bc4eaa0a",
+            "version": [
+                1,
+                0,
+                1
+            ]
+        }
+    ]
 }
+
+===========================================
+📄 DATEI: RP/texts/en_US.lang
+===========================================
+item.factory:obsidian_sword.name=Obsidian Sword
+
+===========================================
+📄 DATEI: RP/texts/de_DE.lang
+===========================================
+"item.my_pack:obsidian_sword.name=Obsidianschwert"
 
 ===========================================
 📄 DATEI: RP/textures/item_texture.json
 ===========================================
 {
-  "resource_pack_name": "vanilla",
+  "resource_pack_name": "test",
+  "texture_name": "atlas.items",
   "texture_data": {
+    "factory:god_sword": {
+      "textures": "textures/items/diamond_sword"
+    },
     "obsidian_sword": {
       "textures": "textures/items/obsidian_sword"
+    },
+    "obsidian_sword_icon": {
+      "textures": "textures/items/obsidian_sword_icon"
     }
   }
-}
-
-===========================================
-📄 DATEI: RP/manifest.json
-===========================================
-{
-  "format_version": 2,
-  "header": {
-    "name": "Factory RP",
-    "description": "Visuals",
-    "uuid": "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
-    "version": [
-      1,
-      0,
-      1
-    ],
-    "min_engine_version": [
-      1,
-      21,
-      0
-    ]
-  },
-  "modules": [
-    {
-      "type": "resources",
-      "uuid": "88ee3e9f-9dff-4662-965e-179e01464b01",
-      "version": [
-        1,
-        0,
-        1
-      ]
-    }
-  ]
-}
-
-===========================================
-📄 DATEI: BP/manifest.json
-===========================================
-{
-  "format_version": 2,
-  "header": {
-    "name": "Factory BP",
-    "description": "Logic",
-    "uuid": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "version": [
-      1,
-      0,
-      1
-    ],
-    "min_engine_version": [
-      1,
-      21,
-      0
-    ]
-  },
-  "modules": [
-    {
-      "type": "data",
-      "uuid": "0fe855ef-d9c6-4be1-a0b2-4d54b09c3155",
-      "version": [
-        1,
-        0,
-        1
-      ]
-    }
-  ],
-  "dependencies": [
-    {
-      "uuid": "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
-      "version": [
-        1,
-        0,
-        1
-      ]
-    }
-  ]
 }

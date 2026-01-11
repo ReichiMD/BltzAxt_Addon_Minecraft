@@ -1,14 +1,14 @@
-Build Date: 20260111
+Build Date: 15:53:07
 --- VERLAUF (SUMMARY) ---
-[15:44:17] ℹ️ 🏭 Factory Start...
+[15:53:07] ℹ️ 🏭 Factory Start (Version 1.0.1)...
 ✅ Datei geprüft: obsidian_sword_recipe.json
 ✅ Datei geprüft: obsidian_sword.json
 ✅ Datei geprüft: item_texture.json
 ✅ Spracheintrag: 'Obsidian Sword'
-✅ Manifest erstellt: BP
-✅ Manifest erstellt: RP
-📦 .mcaddon gepackt: MyFactoryAddon_v20260111.mcaddon
-[15:44:17] ✅ Build Sauber!
+✅ Manifest Update: BP v1.0.1
+✅ Manifest Update: RP v1.0.1
+📦 .mcaddon gepackt: MeinAddon_v1.0.1.mcaddon
+[15:53:07] ✅ Build Sauber!
 
 ===========================================
 🌳 ORDNER STRUKTUR
@@ -41,12 +41,12 @@ RP/
     "format_version": 2,
     "header": {
         "name": "Factory BP",
-        "description": "Auto-generated v20260111",
-        "uuid": "1b87bbb4-a6bd-4fcc-a43c-baabc5a07476",
+        "description": "Auto-generated v1.0.1",
+        "uuid": "4a9dd9c1-bb28-49b6-aa7c-e0a05e7d7030",
         "version": [
             1,
             0,
-            0
+            1
         ],
         "min_engine_version": [
             1,
@@ -57,21 +57,21 @@ RP/
     "modules": [
         {
             "type": "data",
-            "uuid": "98723424-b6a4-488e-bb82-a2f48b456127",
+            "uuid": "c4c87cfa-c664-4326-bd6f-1f44aa1d2478",
             "version": [
                 1,
                 0,
-                0
+                1
             ]
         }
     ],
     "dependencies": [
         {
-            "uuid": "296fdbf3-9a07-40c6-9856-dc66332507ef",
+            "uuid": "2792cdb8-d493-4c0c-9e47-08bc8f3781bb",
             "version": [
                 1,
                 0,
-                0
+                1
             ]
         }
     ]
@@ -171,12 +171,12 @@ RP/
     "format_version": 2,
     "header": {
         "name": "Factory RP",
-        "description": "Auto-generated v20260111",
-        "uuid": "296fdbf3-9a07-40c6-9856-dc66332507ef",
+        "description": "Auto-generated v1.0.1",
+        "uuid": "2792cdb8-d493-4c0c-9e47-08bc8f3781bb",
         "version": [
             1,
             0,
-            0
+            1
         ],
         "min_engine_version": [
             1,
@@ -187,11 +187,11 @@ RP/
     "modules": [
         {
             "type": "resources",
-            "uuid": "09d1fbac-7157-4385-83d6-21cea0d025af",
+            "uuid": "fe3341dd-5070-4538-979e-4f70bc4eaa0a",
             "version": [
                 1,
                 0,
-                0
+                1
             ]
         }
     ]

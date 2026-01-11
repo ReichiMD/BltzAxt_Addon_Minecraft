@@ -2,12 +2,12 @@
     "format_version": 2,
     "header": {
         "name": "Factory RP",
-        "description": "Auto-generated v20260111",
-        "uuid": "296fdbf3-9a07-40c6-9856-dc66332507ef",
+        "description": "Auto-generated v1.0.1",
+        "uuid": "2792cdb8-d493-4c0c-9e47-08bc8f3781bb",
         "version": [
             1,
             0,
-            0
+            1
         ],
         "min_engine_version": [
             1,
@@ -18,11 +18,11 @@
     "modules": [
         {
             "type": "resources",
-            "uuid": "09d1fbac-7157-4385-83d6-21cea0d025af",
+            "uuid": "fe3341dd-5070-4538-979e-4f70bc4eaa0a",
             "version": [
                 1,
                 0,
-                0
+                1
             ]
         }
     ]
