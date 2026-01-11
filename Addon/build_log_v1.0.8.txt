@@ -1,14 +1,19 @@
 --- VERLAUF (SUMMARY) ---
-[11:27:47] ℹ️ 🏭 Factory Start | MODE: Item/JSON Only (Scripts blocked)
-[11:27:47] ℹ️ Starte Aufräumarbeiten...
-[11:27:47] ✅ Modell ausgewählt: gemini-2.5-flash
-[11:28:04] ℹ️ Resource Pack: UUID=2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01, Version=[1, 0, 7]
-[11:28:04] ℹ️ --- ABSCHLUSS-BERICHT ---
-[11:28:04] ✅ Build erfolgreich! Keine Fehler.
+[11:55:04] ℹ️ 🏭 Factory Start (Crash-Proof + Hardcoded Item)...
+[11:55:04] ℹ️ Lösche alte Dateien (BP/items, BP/recipes)...
+[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
+[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
+[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
+[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
+[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
+[11:55:20] ⚠️ Warnung: Eintrag ohne Pfad gefunden, überspringe...
+[11:55:20] ℹ️ Manifest Update: V [1, 0, 8]
+[11:55:20] ℹ️ --- ABSCHLUSS ---
+[11:55:20] ⚠️ Build Warnungen: 6 | Fehler: 0
 
 
 ===========================================
-🌳 ORDNER STRUKTUR (Visualisierung)
+🌳 ORDNER STRUKTUR
 ===========================================
 Addon/
 BP/
@@ -16,7 +21,7 @@ BP/
 
 
 ===========================================
-🌳 ORDNER STRUKTUR (Visualisierung)
+🌳 ORDNER STRUKTUR
 ===========================================
 Addon/
 RP/
@@ -30,25 +35,21 @@ RP/
             obsidian_sword.png
 
 
-
-===========================================
-💻 COMPLETE CODE DUMP (APPENDIX)
-===========================================
+💻 CODE DUMP
 
 ===========================================
 📄 DATEI: RP/manifest.json
 ===========================================
-
 {
   "format_version": 2,
   "header": {
-    "name": "Factory Addon RP",
+    "name": "Factory RP",
     "description": "Visuals",
     "uuid": "2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01",
     "version": [
       1,
       0,
-      7
+      8
     ],
     "min_engine_version": [
       1,
@@ -59,11 +60,11 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "84b64160-89dc-4cea-b83b-83f70b85018e",
+      "uuid": "77a9afc4-0e23-4301-8734-45562dde586b",
       "version": [
         1,
         0,
-        7
+        8
       ]
     }
   ]
@@ -72,17 +73,16 @@ RP/
 ===========================================
 📄 DATEI: BP/manifest.json
 ===========================================
-
 {
   "format_version": 2,
   "header": {
-    "name": "Factory Addon BP",
+    "name": "Factory BP",
     "description": "Logic",
     "uuid": "9c4a8f3b-5e3d-4c1d-8a2b-1f9e7c6d5a0b",
     "version": [
       1,
       0,
-      7
+      8
     ],
     "min_engine_version": [
       1,
@@ -93,11 +93,11 @@ RP/
   "modules": [
     {
       "type": "data",
-      "uuid": "e5705d88-2014-4393-8644-55b8cd3602d9",
+      "uuid": "ad310885-2ca5-4a4e-8dce-d0760f4219a9",
       "version": [
         1,
         0,
-        7
+        8
       ]
     }
   ],
@@ -107,7 +107,7 @@ RP/
       "version": [
         1,
         0,
-        7
+        8
       ]
     }
   ]
