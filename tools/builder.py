@@ -242,4 +242,126 @@ def manage_manifests():
     append_code_to_log("BP/manifest.json", bp_data)
         
     return rp_version
+
+def create_mcaddon(name, version):
+    v_str = f"{version[0]}.{version[1]}.{version[2]}"
+    filename = f"{name}_v{v_str}.mcaddon"
+    log_filename = f"build_log_v{v_str}.txt"
+    
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    # Cleanup Output (Hier war der Fehler!)
+    for f in os.listdir(OUTPUT_DIR):
+        file_path = os.path.join(OUTPUT_DIR, f)
+        try: 
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except: pass
+
+    full_mcaddon_path = os.path.join(OUTPUT_DIR, filename)
+    full_log_path = os.path.join(OUTPUT_DIR, log_filename)
+
+    # Abschluss im Verlauf
+    log("--- ABSCHLUSS-BERICHT ---", "INFO")
+    if errors_count == 0:
+        log("Build erfolgreich! Keine Fehler, keine Warnungen.", "SUCCESS")
+    else:
+        log(f"Build abgeschlossen mit {errors_count} Fehlern.", "WARN")
+
+    # FILE ZUSAMMENBAUEN: 1. Verlauf | 2. Baum | 3. Code
+    full_content = []
+    full_content.append("--- VERLAUF (SUMMARY) ---")
+    full_content.extend(summary_log)
+    
+    # Baum generieren
+    tree_view = generate_ascii_tree(BP_PATH) + generate_ascii_tree(RP_PATH)
+    full_content.append(tree_view)
+    
+    full_content.append("\n\n===========================================")
+    full_content.append("💻 COMPLETE CODE DUMP (APPENDIX)")
+    full_content.append("===========================================")
+    full_content.extend(appendix_log)
+
+    # Schreiben
+    with open(full_log_path, "w", encoding='utf-8') as f:
+        f.write("\n".join(full_content))
+
+    # Zip
+    with zipfile.ZipFile(full_mcaddon_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for folder in [BP_PATH, RP_PATH]:
+            if os.path.exists(folder):
+                folder_name = os.path.basename(folder)
+                for root, _, files in os.walk(folder):
+                    for file in files:
+                        abs_path = os.path.join(root, file)
+                        rel_path = os.path.join(folder_name, os.path.relpath(abs_path, folder))
+                        zf.write(abs_path, rel_path)
+        zf.write(full_log_path, log_filename)
+        
+    log(f"Fertig! Dateien in: {OUTPUT_DIR}", "SUCCESS")
+
+def main():
+    log("🏭 Factory Start (Clean Summary + Full Appendix)...", "INFO")
+    if not API_KEY: exit(1)
+    
+    clean_up_old_files()
+    
+    issue_body = os.environ.get("ISSUE_BODY", "Test Item")
+    client = genai.Client(api_key=API_KEY)
+    model = get_smart_model_name(client)
+    
+    prompt = f"""
+    Du bist ein Minecraft Bedrock Experte (Version 1.21.0+).
+    AUFGABE: {issue_body}
+    REGELN: {load_rules()}
+    
+    Output NUR als JSON-Liste.
+    """
+    
+    try:
+        response = client.models.generate_content(model=model, contents=prompt)
+        text = response.text.replace("```json", "").replace("```", "").strip()
+        start, end = text.find('['), text.rfind(']') + 1
+        text = text[start:end]
+        
+        files = json.loads(text)
+        
+        for item in files:
+            if "path" not in item: continue
+            path = item['path']
+            if ".." in path: continue
             
+            full_path = os.path.join(REPO_ROOT, path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            
+            content = item['content']
+            
+            # FIX & LOGGING
+            content = extract_info_and_fix(path, content)
+            
+            # Code für Anhang speichern (Silent)
+            append_code_to_log(path, content)
+            
+            if "item_texture.json" in path and os.path.exists(full_path):
+                try:
+                    with open(full_path, 'r') as f:
+                        existing = json.load(f)
+                        if "texture_data" in content:
+                            existing.setdefault("texture_data", {}).update(content["texture_data"])
+                            content = existing
+                except: pass
+
+            with open(full_path, 'w') as f:
+                json.dump(content, f, indent=4)
+            log(f"Datei geschrieben: {path}", "SUCCESS")
+
+        ver = manage_manifests()
+        create_mcaddon("MeinAddon", ver)
+
+    except Exception as e:
+        log(f"CRASH: {e}", "ERROR")
+        exit(1)
+
+if __name__ == "__main__":
+    main()
+    
