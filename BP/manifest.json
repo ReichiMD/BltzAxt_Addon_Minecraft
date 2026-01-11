@@ -2,12 +2,12 @@
     "format_version": 2,
     "header": {
         "name": "Factory BP",
-        "description": "Auto-generated v1.0.1",
-        "uuid": "4a9dd9c1-bb28-49b6-aa7c-e0a05e7d7030",
+        "description": "Auto-generated v1.0.2",
+        "uuid": "1121bdd8-5bce-477e-aedb-c46ed82c96ef",
         "version": [
             1,
             0,
-            1
+            2
         ],
         "min_engine_version": [
             1,
@@ -18,21 +18,21 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "c4c87cfa-c664-4326-bd6f-1f44aa1d2478",
+            "uuid": "a4c15cb0-7214-4268-a1ac-ceada902e74e",
             "version": [
                 1,
                 0,
-                1
+                2
             ]
         }
     ],
     "dependencies": [
         {
-            "uuid": "2792cdb8-d493-4c0c-9e47-08bc8f3781bb",
+            "uuid": "fbdd1d0e-371d-47e2-b48c-3743b420c668",
             "version": [
                 1,
                 0,
-                1
+                2
             ]
         }
     ]
