@@ -7,7 +7,7 @@ from google import genai
 import datetime
 
 # ==========================================
-# ⚙️ KONFIGURATION (Das Cockpit)
+# ⚙️ KONFIGURATION
 # ==========================================
 API_KEY = os.environ.get("GEMINI_API_KEY")
 REPO_ROOT = "."
@@ -15,25 +15,17 @@ DOCS_PATH = os.path.join(REPO_ROOT, "docs", "00_best_practices.txt")
 BP_PATH = os.path.join(REPO_ROOT, "BP")
 RP_PATH = os.path.join(REPO_ROOT, "RP")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "Addon")
-
-# 🎛️ HAUPTSCHALTER
-# False = Item-Modus (Sicher). Zwingt die KI zu JSON, blockiert .js Fehler.
-# True  = Profi-Modus. Erlaubt Scripts für komplexe Mechaniken.
 ALLOW_SCRIPTS = False 
 
-# ==========================================
-# 📝 LOGBUCH SYSTEM
-# ==========================================
+# LOG SYSTEM
 summary_log = []     
 appendix_log = []    
 warnings_count = 0
 errors_count = 0
 
 def log(message, level="INFO"):
-    """Schreibt in den sauberen Verlauf (Oben)."""
     global warnings_count, errors_count
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    
     icon = "ℹ️"
     if level == "WARN": 
         icon = "⚠️"
@@ -45,24 +37,16 @@ def log(message, level="INFO"):
         icon = "✅"
     elif level == "FIX":
         icon = "🔧"
-
     entry = f"[{timestamp}] {icon} {message}"
     print(entry)
     summary_log.append(entry)
 
 def append_code_to_log(filename, content):
-    """Speichert den Code NUR für den Anhang (Unten)."""
     pretty_json = json.dumps(content, indent=2)
-    appendix_log.append(f"\n===========================================")
-    appendix_log.append(f"📄 DATEI: {filename}")
-    appendix_log.append(f"===========================================\n")
-    appendix_log.append(pretty_json)
+    appendix_log.append(f"\n===========================================\n📄 DATEI: {filename}\n===========================================\n{pretty_json}")
 
 def generate_ascii_tree(startpath):
-    """Erstellt den Ordner-Baum."""
-    tree_str = "\n\n===========================================\n"
-    tree_str += "🌳 ORDNER STRUKTUR (Visualisierung)\n"
-    tree_str += "===========================================\nAddon/\n"
+    tree_str = "\n\n===========================================\n🌳 ORDNER STRUKTUR\n===========================================\nAddon/\n"
     for root, dirs, files in os.walk(startpath):
         level = root.replace(startpath, '').count(os.sep)
         indent = ' ' * 4 * (level)
@@ -76,31 +60,24 @@ def generate_ascii_tree(startpath):
 
 def load_rules():
     if os.path.exists(DOCS_PATH):
-        with open(DOCS_PATH, 'r') as f:
-            return f.read()
+        with open(DOCS_PATH, 'r') as f: return f.read()
     return "Regeln nicht gefunden."
 
-# ==========================================
-# 🛠️ HELFER FUNKTIONEN
-# ==========================================
-
+# HELFER
 def register_texture_path(texture_name):
     texture_def_path = os.path.join(RP_PATH, "textures", "item_texture.json")
     os.makedirs(os.path.dirname(texture_def_path), exist_ok=True)
-    
     data = {"resource_pack_name": "factory_rp", "texture_name": "atlas.items", "texture_data": {}}
     if os.path.exists(texture_def_path):
         try:
-            with open(texture_def_path, 'r') as f:
-                data = json.load(f)
+            with open(texture_def_path, 'r') as f: data = json.load(f)
         except: pass
     
     if texture_name not in data.get("texture_data", {}):
         if "texture_data" not in data: data["texture_data"] = {}
         data["texture_data"][texture_name] = {"textures": f"textures/items/{texture_name}"}
-        with open(texture_def_path, 'w') as f:
-            json.dump(data, f, indent=4)
-        log(f"Textur '{texture_name}' neu registriert (Bilddatei fehlt noch -> Lila/Schwarz).", "INFO")
+        with open(texture_def_path, 'w') as f: json.dump(data, f, indent=4)
+        log(f"Textur '{texture_name}' registriert.", "INFO")
         append_code_to_log("RP/textures/item_texture.json", data)
     else:
         append_code_to_log("RP/textures/item_texture.json", data)
@@ -108,303 +85,198 @@ def register_texture_path(texture_name):
 def update_language_file(item_id, display_name):
     lang_path = os.path.join(RP_PATH, "texts", "en_US.lang")
     os.makedirs(os.path.dirname(lang_path), exist_ok=True)
-    
     key = f"item.{item_id}.name"
-    line_to_add = f"{key}={display_name}\n"
-    
-    current_content = ""
+    line = f"{key}={display_name}\n"
+    current = ""
     if os.path.exists(lang_path):
-        with open(lang_path, 'r') as f:
-            current_content = f.read()
-            
-    if key not in current_content:
-        with open(lang_path, 'a') as f:
-            f.write(line_to_add)
-        log(f"Sprachdatei Update: {key} -> '{display_name}'", "SUCCESS")
-        appendix_log.append(f"\n[LANG FILE UPDATE]\n{line_to_add}")
+        with open(lang_path, 'r') as f: current = f.read()
+    if key not in current:
+        with open(lang_path, 'a') as f: f.write(line)
+        log(f"Spracheintrag: '{display_name}'", "SUCCESS")
+        appendix_log.append(f"\n[LANG]\n{line}")
 
 def extract_info_and_fix(file_path, content):
-    """Repariert Code und loggt Fixes."""
     try:
         if "minecraft:item" in content:
             item_data = content["minecraft:item"]
             desc = item_data.get("description", {})
             comp = item_data.get("components", {})
             
-            # 1. VERSION (1.21.0 für Items Pflicht)
-            old_ver = content.get("format_version", "old")
-            if old_ver != "1.21.0":
-                log(f"Format-Version korrigiert: {old_ver} -> 1.21.0", "FIX")
+            # 1. Version Force
+            if content.get("format_version") != "1.21.0":
                 content["format_version"] = "1.21.0"
+                log("Format auf 1.21.0 gesetzt.", "FIX")
             
-            # 2. ID ENFORCEMENT (Namespace: factory)
-            original_id = desc.get("identifier", "unknown:item")
-            short_name = original_id.split(":")[-1]
-            new_id = f"factory:{short_name}"
-            
-            if original_id != new_id:
+            # 2. Namespace Force
+            orig_id = desc.get("identifier", "unknown:item")
+            short = orig_id.split(":")[-1]
+            new_id = f"factory:{short}"
+            if orig_id != new_id:
                 desc["identifier"] = new_id
-                log(f"ID korrigiert: '{original_id}' zu '{new_id}' (Namespace Enforcement)", "FIX")
+                log(f"ID korrigiert: {orig_id} -> {new_id}", "FIX")
 
-            # 3. KREATIV MENÜ (Sichtbarkeit)
-            if "menu_category" not in desc:
-                desc["menu_category"] = {"category": "equipment", "group": "itemGroup.name.sword"}
-                item_data["description"] = desc
-                log("Kreativ-Menü Eintrag fehlte und wurde hinzugefügt.", "FIX")
+            # 3. Creative Menu Force
+            desc["menu_category"] = {"category": "equipment", "group": "itemGroup.name.sword"}
+            item_data["description"] = desc
 
-            # 4. ICON SYNTAX
+            # 4. Icon & Name
             icon = comp.get("minecraft:icon")
             if icon:
-                tex_name = icon if isinstance(icon, str) else icon.get("texture")
-                if isinstance(icon, dict):
-                    comp["minecraft:icon"] = tex_name
-                    log("Icon-Syntax korrigiert (Objekt -> String).", "FIX")
-                if tex_name: register_texture_path(tex_name)
+                tname = icon if isinstance(icon, str) else icon.get("texture")
+                if isinstance(icon, dict): comp["minecraft:icon"] = tname
+                if tname: register_texture_path(tname)
 
-            # 5. NAME & LANG
             display = comp.get("minecraft:display_name")
             if display:
-                name_val = display.get("value") if isinstance(display, dict) else display
-                if isinstance(display, str):
-                     comp["minecraft:display_name"] = { "value": display }
-                     name_val = display
-                if name_val: update_language_file(new_id, name_val)
+                val = display.get("value") if isinstance(display, dict) else display
+                if isinstance(display, str): comp["minecraft:display_name"] = {"value": display}; val = display
+                if val: update_language_file(new_id, val)
             
             content["minecraft:item"] = item_data
             return content
-
     except Exception as e:
-        log(f"Fehler bei Analyse von {file_path}: {e}", "ERROR")
+        log(f"Fehler bei Fix: {e}", "ERROR")
     return content
 
 def clean_up_old_files():
-    log("Starte Aufräumarbeiten...", "INFO")
-    # Lösche auch den Scripts Ordner, falls Skripte verboten sind
+    log("Lösche alte Dateien (BP/items, BP/recipes)...", "INFO")
     folders = [os.path.join(BP_PATH, "items"), os.path.join(BP_PATH, "recipes")]
-    if not ALLOW_SCRIPTS:
-        folders.append(os.path.join(BP_PATH, "scripts"))
-        
-    for folder in folders:
-        if os.path.exists(folder):
-            shutil.rmtree(folder)
+    if not ALLOW_SCRIPTS: folders.append(os.path.join(BP_PATH, "scripts"))
+    for f in folders:
+        if os.path.exists(f): shutil.rmtree(f)
 
-def get_smart_model_name(client):
+def get_model(client):
     try:
-        all_models = list(client.models.list())
-        flash = [m.name for m in all_models if "flash" in m.name.lower()]
+        flash = [m.name for m in client.models.list() if "flash" in m.name.lower()]
         best = flash[0] if flash else "gemini-1.5-flash"
-        clean = best.replace("models/", "") if best.startswith("models/") else best
-        log(f"Modell ausgewählt: {clean}", "SUCCESS")
-        return clean
+        return best.replace("models/", "") if best.startswith("models/") else best
     except: return "gemini-1.5-flash"
 
 def manage_manifests():
     rp_path = os.path.join(RP_PATH, "manifest.json")
     bp_path = os.path.join(BP_PATH, "manifest.json")
-    os.makedirs(RP_PATH, exist_ok=True)
-    os.makedirs(BP_PATH, exist_ok=True)
+    os.makedirs(RP_PATH, exist_ok=True); os.makedirs(BP_PATH, exist_ok=True)
 
-    # RP Manifest
-    rp_uuid = str(uuid.uuid4())
-    rp_version = [1, 0, 0]
+    rp_uuid = str(uuid.uuid4()); rp_ver = [1, 0, 0]
     if os.path.exists(rp_path):
         try:
-            with open(rp_path, 'r') as f:
-                d = json.load(f)
-                rp_uuid = d['header']['uuid']
-                rp_version = d['header']['version']
-                rp_version[2] += 1
+            with open(rp_path) as f: d=json.load(f); rp_uuid=d['header']['uuid']; rp_ver=d['header']['version']; rp_ver[2]+=1
         except: pass
 
     rp_data = {
         "format_version": 2,
-        "header": {
-            "name": "Factory Addon RP",
-            "description": "Visuals",
-            "uuid": rp_uuid,
-            "version": rp_version,
-            "min_engine_version": [1, 21, 0]
-        },
-        "modules": [{"type": "resources", "uuid": str(uuid.uuid4()), "version": rp_version}]
+        "header": {"name": "Factory RP", "description": "Visuals", "uuid": rp_uuid, "version": rp_ver, "min_engine_version": [1, 21, 0]},
+        "modules": [{"type": "resources", "uuid": str(uuid.uuid4()), "version": rp_ver}]
     }
     with open(rp_path, 'w') as f: json.dump(rp_data, f, indent=4)
     append_code_to_log("RP/manifest.json", rp_data)
 
-    # BP Manifest
     bp_uuid = str(uuid.uuid4())
     if os.path.exists(bp_path):
         try:
-            with open(bp_path, 'r') as f:
-                d = json.load(f)
-                bp_uuid = d['header']['uuid']
+            with open(bp_path) as f: d=json.load(f); bp_uuid=d['header']['uuid']
         except: pass
 
-    log(f"Resource Pack: UUID={rp_uuid}, Version={rp_version}", "INFO")
-
-    # Modul-Typ abhängig vom Skript-Status wählen
-    bp_module_type = "data"
-    if ALLOW_SCRIPTS: 
-        bp_module_type = "script" # Für später vorbereitet
+    log(f"Manifest Update: V {rp_ver}", "INFO")
 
     bp_data = {
         "format_version": 2,
-        "header": {
-            "name": "Factory Addon BP",
-            "description": "Logic",
-            "uuid": bp_uuid,
-            "version": rp_version,
-            "min_engine_version": [1, 21, 0]
-        },
-        "modules": [{"type": "data", "uuid": str(uuid.uuid4()), "version": rp_version}],
-        "dependencies": [{"uuid": rp_uuid, "version": rp_version}]
+        "header": {"name": "Factory BP", "description": "Logic", "uuid": bp_uuid, "version": rp_ver, "min_engine_version": [1, 21, 0]},
+        "modules": [{"type": "data", "uuid": str(uuid.uuid4()), "version": rp_ver}],
+        "dependencies": [{"uuid": rp_uuid, "version": rp_ver}]
     }
     with open(bp_path, 'w') as f: json.dump(bp_data, f, indent=4)
     append_code_to_log("BP/manifest.json", bp_data)
-        
-    return rp_version
+    return rp_ver
 
 def create_mcaddon(name, version):
     v_str = f"{version[0]}.{version[1]}.{version[2]}"
     filename = f"{name}_v{v_str}.mcaddon"
-    log_filename = f"build_log_v{v_str}.txt"
-    
+    logname = f"build_log_v{v_str}.txt"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
-    # Aufräumen Output
+    # Cleanup Output
     for f in os.listdir(OUTPUT_DIR):
-        file_path = os.path.join(OUTPUT_DIR, f)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+        try: os.unlink(os.path.join(OUTPUT_DIR, f))
         except: pass
 
-    full_mcaddon_path = os.path.join(OUTPUT_DIR, filename)
-    full_log_path = os.path.join(OUTPUT_DIR, log_filename)
-
-    # Abschlussbericht
-    log("--- ABSCHLUSS-BERICHT ---", "INFO")
-    if errors_count == 0:
-        log("Build erfolgreich! Keine Fehler.", "SUCCESS")
-    else:
-        log(f"Build mit {errors_count} Fehlern beendet.", "WARN")
-
-    # FILE ZUSAMMENBAUEN
-    full_content = []
-    full_content.append("--- VERLAUF (SUMMARY) ---")
-    full_content.extend(summary_log)
+    full_log_path = os.path.join(OUTPUT_DIR, logname)
     
-    tree_view = generate_ascii_tree(BP_PATH) + generate_ascii_tree(RP_PATH)
-    full_content.append(tree_view)
+    # Abschluss
+    log("--- ABSCHLUSS ---", "INFO")
+    if errors_count == 0 and warnings_count == 0: log("Build Sauber!", "SUCCESS")
+    else: log(f"Build Warnungen: {warnings_count} | Fehler: {errors_count}", "WARN")
+
+    full_content = ["--- VERLAUF (SUMMARY) ---"] + summary_log + [generate_ascii_tree(BP_PATH) + generate_ascii_tree(RP_PATH)] + ["\n💻 CODE DUMP"] + appendix_log
     
-    full_content.append("\n\n===========================================")
-    full_content.append("💻 COMPLETE CODE DUMP (APPENDIX)")
-    full_content.append("===========================================")
-    full_content.extend(appendix_log)
+    with open(full_log_path, "w", encoding='utf-8') as f: f.write("\n".join(full_content))
 
-    with open(full_log_path, "w", encoding='utf-8') as f:
-        f.write("\n".join(full_content))
-
-    # Zip
-    with zipfile.ZipFile(full_mcaddon_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+    zip_path = os.path.join(OUTPUT_DIR, filename)
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for folder in [BP_PATH, RP_PATH]:
             if os.path.exists(folder):
-                folder_name = os.path.basename(folder)
                 for root, _, files in os.walk(folder):
                     for file in files:
-                        abs_path = os.path.join(root, file)
-                        rel_path = os.path.join(folder_name, os.path.relpath(abs_path, folder))
-                        zf.write(abs_path, rel_path)
-        zf.write(full_log_path, log_filename)
-        
-    log(f"Fertig! Dateien in: {OUTPUT_DIR}", "SUCCESS")
+                        abs = os.path.join(root, file)
+                        rel = os.path.join(os.path.basename(folder), os.path.relpath(abs, folder))
+                        zf.write(abs, rel)
+        zf.write(full_log_path, logname)
+    log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
-# ==========================================
-# 🚀 HAUPTPROGRAMM
-# ==========================================
 def main():
-    mode_text = "MODE: Item/JSON Only (Scripts blocked)"
-    if ALLOW_SCRIPTS:
-        mode_text = "MODE: Advanced (Scripts allowed)"
-        
-    log(f"🏭 Factory Start | {mode_text}", "INFO")
-    
-    if not API_KEY: 
-        log("API Key fehlt!", "ERROR")
-        exit(1)
-    
+    log("🏭 Factory Start (Hardcoded Task)...", "INFO")
+    if not API_KEY: exit(1)
     clean_up_old_files()
     
-    issue_body = os.environ.get("ISSUE_BODY", "Test Item")
-    client = genai.Client(api_key=API_KEY)
-    model = get_smart_model_name(client)
+    # WICHTIG: Wir überschreiben die Aufgabe hart, damit die KI nicht faul ist!
+    issue_body = "Erstelle ein Obsidian Schwert (obsidian_sword) mit 10 Schaden und Haltbarkeit."
     
-    # 🧠 DYNAMISCHER PROMPT
-    # Passt sich an den Schalter ALLOW_SCRIPTS an
-    script_rules = ""
-    if not ALLOW_SCRIPTS:
-        script_rules = """
-        🚨 WICHTIGE EINSCHRÄNKUNGEN:
-        1. Erstelle KEINE Scripts (.js) und KEINE 'scripts/' Ordner.
-        2. Nutze NUR Standard JSON Komponenten (1.21.0).
-        3. Items gehören in 'BP/items/'.
-        """
-    else:
-        script_rules = """
-        ℹ️ SCRIPT INFO:
-        1. Du darfst 'scripts/' Ordner nutzen, wenn nötig.
-        2. Achte auf korrekte API Versionen für Bedrock.
-        """
-
+    client = genai.Client(api_key=API_KEY)
+    
     prompt = f"""
-    Du bist ein Minecraft Bedrock Experte (Version 1.21.0+).
+    Du bist ein Minecraft Bedrock Experte (1.21.0).
     AUFGABE: {issue_body}
     REGELN: {load_rules()}
     
-    {script_rules}
+    WICHTIG:
+    1. Erstelle EINE Datei in 'BP/items/obsidian_sword.json'.
+    2. KEINE Scripts! Nur JSON.
+    3. Nutze 'minecraft:damage': 10.
     
     Output NUR als JSON-Liste.
     """
     
     try:
-        response = client.models.generate_content(model=model, contents=prompt)
-        text = response.text.replace("```json", "").replace("```", "").strip()
+        resp = client.models.generate_content(model=get_model(client), contents=prompt)
+        text = resp.text.replace("```json", "").replace("```", "").strip()
         start, end = text.find('['), text.rfind(']') + 1
-        text = text[start:end]
+        files = json.loads(text[start:end])
         
-        files = json.loads(text)
+        # ALARM: Hat die KI überhaupt was gemacht?
+        if len(files) == 0:
+            log("KI hat 0 Dateien geliefert! CRITICAL ERROR.", "ERROR")
         
         for item in files:
-            if "path" not in item: continue
             path = item['path']
-            if ".." in path: continue
+            if not ALLOW_SCRIPTS and (".js" in path or "scripts" in path):
+                log(f"Skript blockiert: {path}", "WARN"); continue
             
-            # 🛡️ SECURITY CHECK
-            # Wenn Scripts verboten sind, aber die KI trotzdem welche schickt -> Blockieren
-            if not ALLOW_SCRIPTS:
-                if path.endswith(".js") or "scripts/" in path:
-                    log(f"Blockiere unerwünschtes Skript: {path}", "WARN")
-                    continue
-            
-            full_path = os.path.join(REPO_ROOT, path)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            
-            content = item['content']
-            
-            content = extract_info_and_fix(path, content)
+            full = os.path.join(REPO_ROOT, path)
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            content = extract_info_and_fix(path, item['content'])
             append_code_to_log(path, content)
             
-            if "item_texture.json" in path and os.path.exists(full_path):
-                try:
-                    with open(full_path, 'r') as f:
-                        existing = json.load(f)
-                        if "texture_data" in content:
-                            existing.setdefault("texture_data", {}).update(content["texture_data"])
-                            content = existing
+            # Merge Texture Defs
+            if "item_texture.json" in path and os.path.exists(full):
+                try: 
+                    with open(full) as f: 
+                        ex = json.load(f)
+                        ex.setdefault("texture_data", {}).update(content.get("texture_data", {}))
+                        content = ex
                 except: pass
 
-            with open(full_path, 'w') as f:
-                json.dump(content, f, indent=4)
-            log(f"Datei geschrieben: {path}", "SUCCESS")
+            with open(full, 'w') as f: json.dump(content, f, indent=4)
+            log(f"Datei erstellt: {path}", "SUCCESS")
 
         ver = manage_manifests()
         create_mcaddon("MeinAddon", ver)
@@ -415,4 +287,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+        
