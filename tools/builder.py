@@ -155,13 +155,12 @@ def extract_info_and_fix(file_path, content):
             content["minecraft:item"] = item_data
             return content
 
-        # --- NEU: FIX FÜR REZEPTE ---
+        # --- FIX FÜR REZEPTE ---
         elif "minecraft:recipe_shaped" in content:
             recipe = content["minecraft:recipe_shaped"]
             if "result" in recipe:
                 if "item" in recipe["result"]:
                     orig_res = recipe["result"]["item"]
-                    # Wir zwingen das Ergebnis auch auf 'factory:'
                     short_res = orig_res.split(":")[-1]
                     new_res = f"factory:{short_res}"
                     if orig_res != new_res:
@@ -261,7 +260,7 @@ def create_mcaddon(name, version):
     log(f"Fertig: {OUTPUT_DIR}", "SUCCESS")
 
 def main():
-    log("🏭 Factory Start (Dynamic + Recipe Fix)...", "INFO")
+    log("🏭 Factory Start (Lang Fix & Polish)...", "INFO")
     if not API_KEY: exit(1)
     clean_up_old_files()
     
@@ -341,6 +340,13 @@ def main():
                 if path.endswith(".js"): 
                     log(f"Skript blockiert (Endung .js): {path}", "WARN")
                     continue
+
+            # 🛑 LANG FILE BLOCKER
+            # Wenn die KI eine Sprachdatei schickt, ignorieren wir sie,
+            # weil wir sie in extract_info_and_fix sowieso sauber neu erstellen.
+            if path.endswith(".lang"):
+                log(f"Ignoriere KI-Sprachdatei (Auto-Generierung aktiv): {path}", "INFO")
+                continue
             
             full = os.path.join(REPO_ROOT, path)
             os.makedirs(os.path.dirname(full), exist_ok=True)
