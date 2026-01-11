@@ -7,7 +7,7 @@
         "version": [
             1,
             0,
-            4
+            5
         ],
         "min_engine_version": [
             1,
@@ -18,11 +18,11 @@
     "modules": [
         {
             "type": "data",
-            "uuid": "2c0fbac2-0c43-4c4e-9495-54b1619e7ed3",
+            "uuid": "f118bbad-71ad-48cd-b4c2-590dc85d9cfc",
             "version": [
                 1,
                 0,
-                4
+                5
             ]
         }
     ],
@@ -32,7 +32,7 @@
             "version": [
                 1,
                 0,
-                0
+                5
             ]
         }
     ]
