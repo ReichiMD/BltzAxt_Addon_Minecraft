@@ -1,10 +1,10 @@
 --- VERLAUF (SUMMARY) ---
-[10:53:58] ℹ️ 🏭 Factory Start (Clean Summary + Full Appendix)...
-[10:53:58] ℹ️ Starte Aufräumarbeiten...
-[10:53:58] ✅ Modell ausgewählt: gemini-2.5-flash
-[10:54:11] ℹ️ Resource Pack: UUID=2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01, Version=[1, 0, 6]
-[10:54:11] ℹ️ --- ABSCHLUSS-BERICHT ---
-[10:54:11] ✅ Build erfolgreich! Keine Fehler, keine Warnungen.
+[11:27:47] ℹ️ 🏭 Factory Start | MODE: Item/JSON Only (Scripts blocked)
+[11:27:47] ℹ️ Starte Aufräumarbeiten...
+[11:27:47] ✅ Modell ausgewählt: gemini-2.5-flash
+[11:28:04] ℹ️ Resource Pack: UUID=2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01, Version=[1, 0, 7]
+[11:28:04] ℹ️ --- ABSCHLUSS-BERICHT ---
+[11:28:04] ✅ Build erfolgreich! Keine Fehler.
 
 
 ===========================================
@@ -13,8 +13,6 @@
 Addon/
 BP/
     manifest.json
-    scripts/
-        main.js
 
 
 ===========================================
@@ -50,7 +48,7 @@ RP/
     "version": [
       1,
       0,
-      6
+      7
     ],
     "min_engine_version": [
       1,
@@ -61,11 +59,11 @@ RP/
   "modules": [
     {
       "type": "resources",
-      "uuid": "6e853b84-0585-4126-a7ed-9b2864abffaf",
+      "uuid": "84b64160-89dc-4cea-b83b-83f70b85018e",
       "version": [
         1,
         0,
-        6
+        7
       ]
     }
   ]
@@ -84,7 +82,7 @@ RP/
     "version": [
       1,
       0,
-      6
+      7
     ],
     "min_engine_version": [
       1,
@@ -95,11 +93,11 @@ RP/
   "modules": [
     {
       "type": "data",
-      "uuid": "fb334c36-e118-456a-913a-e6c7aad2cf6c",
+      "uuid": "e5705d88-2014-4393-8644-55b8cd3602d9",
       "version": [
         1,
         0,
-        6
+        7
       ]
     }
   ],
@@ -109,7 +107,7 @@ RP/
       "version": [
         1,
         0,
-        6
+        7
       ]
     }
   ]
