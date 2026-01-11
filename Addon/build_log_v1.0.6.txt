@@ -1,0 +1,116 @@
+--- VERLAUF (SUMMARY) ---
+[10:53:58] ℹ️ 🏭 Factory Start (Clean Summary + Full Appendix)...
+[10:53:58] ℹ️ Starte Aufräumarbeiten...
+[10:53:58] ✅ Modell ausgewählt: gemini-2.5-flash
+[10:54:11] ℹ️ Resource Pack: UUID=2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01, Version=[1, 0, 6]
+[10:54:11] ℹ️ --- ABSCHLUSS-BERICHT ---
+[10:54:11] ✅ Build erfolgreich! Keine Fehler, keine Warnungen.
+
+
+===========================================
+🌳 ORDNER STRUKTUR (Visualisierung)
+===========================================
+Addon/
+BP/
+    manifest.json
+    scripts/
+        main.js
+
+
+===========================================
+🌳 ORDNER STRUKTUR (Visualisierung)
+===========================================
+Addon/
+RP/
+    manifest.json
+    texts/
+        en_US.lang
+        de_DE.lang
+    textures/
+        item_texture.json
+        items/
+            obsidian_sword.png
+
+
+
+===========================================
+💻 COMPLETE CODE DUMP (APPENDIX)
+===========================================
+
+===========================================
+📄 DATEI: RP/manifest.json
+===========================================
+
+{
+  "format_version": 2,
+  "header": {
+    "name": "Factory Addon RP",
+    "description": "Visuals",
+    "uuid": "2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01",
+    "version": [
+      1,
+      0,
+      6
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "6e853b84-0585-4126-a7ed-9b2864abffaf",
+      "version": [
+        1,
+        0,
+        6
+      ]
+    }
+  ]
+}
+
+===========================================
+📄 DATEI: BP/manifest.json
+===========================================
+
+{
+  "format_version": 2,
+  "header": {
+    "name": "Factory Addon BP",
+    "description": "Logic",
+    "uuid": "9c4a8f3b-5e3d-4c1d-8a2b-1f9e7c6d5a0b",
+    "version": [
+      1,
+      0,
+      6
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "fb334c36-e118-456a-913a-e6c7aad2cf6c",
+      "version": [
+        1,
+        0,
+        6
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "2b1a7d6c-4e8f-3b9c-1d5a-8f7e6d2c4b01",
+      "version": [
+        1,
+        0,
+        6
+      ]
+    }
+  ]
+}
