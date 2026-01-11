@@ -242,35 +242,4 @@ def manage_manifests():
     append_code_to_log("BP/manifest.json", bp_data)
         
     return rp_version
-
-def create_mcaddon(name, version):
-    v_str = f"{version[0]}.{version[1]}.{version[2]}"
-    filename = f"{name}_v{v_str}.mcaddon"
-    log_filename = f"build_log_v{v_str}.txt"
-    
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
-    # Aufräumen Output
-    for f in os.listdir(OUTPUT_DIR):
-        try: os.unlink(os.path.join(OUTPUT_
-                                    _path, 'r') as f:
-                        existing = json.load(f)
-                        if "texture_data" in content:
-                            existing.setdefault("texture_data", {}).update(content["texture_data"])
-                            content = existing
-                except: pass
-
-            with open(full_path, 'w') as f:
-                json.dump(content, f, indent=4)
-            log(f"✅ Datei: {path}")
-
-        ver = manage_manifests()
-        create_mcaddon("MeinAddon", ver)
-
-    except Exception as e:
-        log(f"❌ ERROR: {e}")
-        exit(1)
-
-if __name__ == "__main__":
-    main()
-                    
+            
